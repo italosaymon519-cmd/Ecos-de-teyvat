@@ -9,8 +9,11 @@ with sync_playwright() as p:
   path=urlparse(route.request.url).path;f=ROOT/('index.html' if path=='/' else path.lstrip('/'))
   route.fulfill(content_type='text/javascript' if f.suffix=='.js' else 'text/css' if f.suffix=='.css' else 'text/html',body=f.read_text())
  page.route('https://ecos.test/**',serve);page.goto('https://ecos.test/')
- page.locator('[data-die="12"]').click();page.locator('#roll').click()
- assert page.locator('#roll-detail').inner_text().startswith('d12:');assert 1<=int(page.locator('#die-result').inner_text())<=12
+ page.locator('#roll-nick').fill('Teste de dados');page.locator('[data-die="12"]').click();page.locator('#roll').click()
+ assert '1d12:' in page.locator('#roll-detail').inner_text();assert 1<=int(page.locator('#die-result').inner_text())<=12
+ page.locator('#roll-mode').select_option('advantage');assert page.locator('[data-die="20"]').get_attribute('class')=='selected';page.locator('#roll').click();assert 'Vantagem · 2d20 [' in page.locator('#roll-detail').inner_text()
+ page.locator('#roll-mode').select_option('disadvantage');page.locator('#roll').click();assert 'Desvantagem · 2d20 [' in page.locator('#roll-detail').inner_text()
+ page.locator('[data-die="8"]').click();assert page.locator('#roll-mode').input_value()=='normal';page.locator('#roll-mode').select_option('critical');page.locator('#roll').click();assert 'Teste de dados • Crítico (dano) · 2d8 [' in page.locator('#roll-detail').inner_text()
  page.locator('#new-character').click();page.locator('#character-form [name=name]').fill('Teste')
  assert page.locator('[name=skillChoice]').count()==18;assert page.locator('[name=talentChoice]').count()==8
  for value in ['Atletismo','Furtividade']:page.locator('[name=skillChoice][value="'+value+'"]').check()
