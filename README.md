@@ -1,0 +1,24 @@
+# Ecos de Teyvat
+
+Mesa de RPG em português, com fichas, PV, EE, recargas, reações elementais, dados e diário.
+
+Requer Node.js 22 ou superior. Sem dependências externas.
+
+```sh
+npm start
+npm test
+```
+
+Servidor na porta 3000, configurável por `PORT`. O progresso fica no localStorage do navegador. Exporte regularmente uma cópia JSON; a importação substitui a campanha local após confirmação. Não há login, sincronização ou multiplayer nesta versão.
+
+Regras: máximo 3 EE; E gera 1 EE se funcionar e volta após um turno de intervalo; Q exige 3 EE e respeita limites por descanso. Reações dão 1 EE a cada um dos dois participantes e consomem a marca. Avançar rodada remove marcas. Cada ficha registra uma marca preparada em um inimigo narrativo: não é um gerenciador individual de inimigos. O elemento usado pelo segundo participante é o da sua Visão; efeitos espalhados e autorreações ficam para a mesa.
+
+Dano, cura, escudos, condições e modificadores são resolvidos manualmente. Descansos liberam os limites de Q; recuperação de PV/EE fica a cargo da mesa. Rodadas de combate presumem um turno por personagem; efeitos que alteram iniciativa exigem arbitragem. Não existe custo ou limite adicional de energia por reação além do teto de 3.
+
+O mapa enviado na conversa ainda não integra o site: o arquivo original precisa ser disponibilizado como recurso do projeto para inclusão fiel. O site não depende de serviços, fontes ou imagens externas.
+
+## Publicação automática no Netlify
+
+Conecte este repositório ao projeto existente e selecione a branch `main`. O arquivo `netlify.toml` configura `npm run build` e a pasta pública `dist`. Somente HTML, CSS e JavaScript do site são incluídos; o servidor local e os testes não são publicados.
+
+A biblioteca inclui os três guias da campanha. A seção Mapa permite carregar uma imagem local com zoom; o mapa fica no IndexedDB do navegador e não integra o backup JSON.

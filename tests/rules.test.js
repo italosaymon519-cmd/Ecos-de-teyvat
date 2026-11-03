@@ -1,0 +1,7 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {energy,react,useE,useQ,roll} from '../src/rules.js';
+const char=(id,element,ee=0)=>({id,element,ee,mark:null,eReady:0,qShort:false,qLong:0});
+test('reação recompensa ambos, consome marca e respeita teto',()=>{const a={...char('a','Pyro',3),mark:'Pyro'},b=char('b','Hydro',1);const r=react(a,b);assert.equal(r.name,'Vaporizar');assert.equal(r.participants[0].ee,3);assert.equal(r.participants[1].ee,2);assert.equal(r.participants[0].mark,null);assert.equal(a.mark,'Pyro');});
+test('não aceita mesmo participante ou combinação incompatível',()=>{const a={...char('a','Pyro'),mark:'Pyro'};assert.throws(()=>react(a,a));assert.equal(react(a,char('b','Dendro')).name,'Queimadura');assert.throws(()=>react(a,char('b','Pyro')));});
+test('E gera energia só se funcionar e espera um turno',()=>{let c=useE(char('a','Pyro'),1,true);assert.equal(c.ee,1);assert.throws(()=>useE(c,2,true));c=useE(c,3,false);assert.equal(c.ee,1);assert.equal(c.eReady,5);});
+test('Q exige energia e respeita ambos os descansos',()=>{assert.throws(()=>useQ(char('a','Pyro',2)));const c=useQ(char('a','Pyro',3));assert.equal(c.ee,0);assert.equal(c.qLong,1);assert.throws(()=>useQ({...c,ee:3}));assert.throws(()=>useQ({...c,ee:3,qShort:false,qLong:3}));});
+test('energia e dados permanecem nos limites',()=>{assert.equal(energy(0,-1),0);assert.equal(energy(3,1),3);assert.equal(roll(20,()=>0),1);assert.equal(roll(20,()=>.999999),20);});
