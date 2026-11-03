@@ -50,7 +50,7 @@ A marca preparada agora corresponde obrigatoriamente à Visão cadastrada. Os se
 
 ### Testes de perícia pela ficha
 
-Em Personagens, abra **Rolar perícias pela ficha**, ou use **Rolar perícia** no cartão da Mesa. Cada um dos 18 testes mostra o bônus pronto e oferece normal, vantagem ou desvantagem. O cálculo usa d20 + atributo e, somente se a perícia estiver treinada, proficiência de nível (+2 em 1–4; +3 em 5–8; +4 em 9–12; +5 em 13–16; +6 em 17–20). Fichas anteriores assumem nível 1 até edição. Não há soma automática de especialização, artefatos ou bônus narrativos não selecionados.
+Em Personagens, abra **Rolar perícias pela ficha**, ou use **Rolar perícia** no cartão da Mesa. Cada um dos 18 testes mostra o bônus pronto e oferece normal, vantagem ou desvantagem. O cálculo usa d20 + atributo e, somente se a perícia estiver treinada, proficiência de nível (+2 em 1–4; +3 em 5–8; +4 em 9–12; +5 em 13–16; +6 em 17–20). Fichas anteriores assumem nível 1 até edição. Não há soma automática de especialização ou bônus narrativos não selecionados. A Tiara pode ser selecionada antes de um teste compatível, conforme a seção de artefatos.
 
 O resultado identifica o jogador (nick da sala/local, ou nome do personagem como alternativa), o personagem, os dados e cada parcela do cálculo. O resultado também entra no histórico local. Os limites de duas perícias e dois talentos permanecem. Um 20 ou 1 natural no teste de perícia não aplica automaticamente as regras exclusivas de ataques.
 
@@ -61,3 +61,11 @@ A Mesa e a ficha exibem o benefício da Visão com um uso por combate. Geo rola 
 Ao registrar dano, informe se veio de ataque e se o inimigo está afetado por Cryo. A redução aplicável é calculada antes da absorção do escudo, e só o restante reduz PV. O limite de uso não volta com descanso nem com a próxima rodada: apenas no início de um novo combate. Trocar de Visão remove efeitos incompatíveis e preserva o uso já gasto.
 
 Anemo registra o reposicionamento reativo de 3 m, sem ataques de oportunidade; a posição do token continua sendo ajustada manualmente porque o mapa não possui escala em metros. Use Concluir deslocamento para resolver o aviso. Gatilhos narrativos (ter resistido, ter sido atacado, ter acertado Electro) são confirmados pelo jogador/mestre, não inferidos de uma rolagem sem CD. Essas alterações continuam nas fichas locais; não enviam PV ou efeitos ao banco da sala.
+
+### Artefatos básicos
+
+Abra **Artefatos · 5 peças equipadas** no cartão da Mesa ou na ficha. As cinco peças iniciais do guia ficam equipadas: Flor Silvestre (+3 PV máximos, já incluídos nos 33 iniciais), Pluma do Viajante (+1 no primeiro acerto com arma por turno), Ampulheta Parada (+1 em resistência por combate), Cálice Elemental (+1 em habilidade com dano da própria Visão por turno) e Tiara da Concentração (+1 em teste de Intelecto ou Espírito por combate).
+
+**Rolar dano** permite informar dados, modificador, acerto e crítico. O crítico duplica apenas os dados; o bônus fixo do artefato entra uma vez. Um erro preserva o uso. Ataque comum de catalisador usa Pluma; habilidades elementais usam Cálice. O cálculo registra dano, sem descontar automaticamente PV de um alvo. Ajuste dados e modificador conforme a habilidade usada.
+
+Areias e Tiara devem ser selecionadas antes de rolar, no teste de resistência ou no painel de perícias. A Tiara preparada aguarda um teste de Intelecto/Espírito. Os usos persistem ao recarregar e editar a ficha; apenas novo combate restaura os usos por combate. A iniciativa compartilhada/local identifica cada turno para Pluma/Cálice; sem iniciativa, Avançar rodada renova esses bônus. A Flor não é somada novamente ao editar/importar: o campo de PV máximos contém o valor final. As fichas e seus usos continuam locais ao navegador. Não é necessária nova migração SQL.
