@@ -1,0 +1,3 @@
+export function initiativeOrder(entries){return entries.map((c,index)=>({...c,index})).sort((a,b)=>b.initiative-a.initiative||a.index-b.index).map(({index,...c})=>c);}
+export function nextCombatTurn(combat){const order=initiativeOrder(combat.combatants),current=order.findIndex(c=>c.id===combat.active_id);if(!order.some(c=>c.enabled))throw Error('Inclua ao menos um participante ativo.');for(let step=1;step<=order.length;step++){const index=(current+step)%order.length;if(order[index].enabled)return {...combat,active_id:order[index].id,round:combat.round+(current>=0&&index<=current?1:0)};}}
+export function rollInitiatives(entries,random=Math.random){return entries.map(c=>({...c,initiative:Math.floor(random()*20)+1+c.bonus}));}

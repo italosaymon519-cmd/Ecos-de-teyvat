@@ -8,7 +8,7 @@ import json,base64
 from playwright.sync_api import sync_playwright
 ROOT=Path(__file__).resolve().parents[2]/'dist'
 RID='11111111-1111-1111-1111-111111111111';CODE='ABCDEF0123456789ABCDEF0123456789'
-rooms=[];members=[];items=[];tokens=[];files={};errors=[]
+rooms=[];members=[];items=[];tokens=[];files={};errors=[];combats={}
 def reply(route,data,status=200):route.fulfill(status=status,content_type='application/json',body=json.dumps(data))
 def api(route):
  req=route.request;u=urlparse(req.url);path=u.path;method=req.method;token=req.headers.get('authorization','').replace('Bearer ','');user=token.replace('token-','');q=parse_qs(u.query)
@@ -27,6 +27,12 @@ def api(route):
   return reply(route,RID)
  if path=='/rest/v1/campaign_rooms':return reply(route,rooms if any(m['user_id']==user for m in members) else [])
  if path=='/rest/v1/campaign_members':return reply(route,members)
+ if path=='/rest/v1/campaign_combats':return reply(route,[combats[RID]] if RID in combats else [])
+ if path=='/rest/v1/rpc/save_campaign_combat':
+  if user!='gm':return reply(route,{},403)
+  old=combats.get(RID,{'revision':0})
+  if old['revision']!=body['expected_revision']:return reply(route,{'message':'Conflito de versão'},400)
+  combats[RID]={'room_id':RID,**body['payload'],'revision':old['revision']+1};return reply(route,combats[RID])
  if path=='/rest/v1/campaign_tokens':
   if method=='GET':
    ids=[i['id'] for i in items if i['visible'] or user=='gm']
@@ -116,6 +122,18 @@ with sync_playwright() as p:
  gm.locator('[data-room-action=preview]').click();assert gm.locator('#room-follow').is_visible()
  gm.locator('#room-follow').click();assert gm.locator('#room-stage-title').inner_text()=='Mapa da campanha'
  gm.locator('#room-search').fill('')
+ # Shared initiative starts at highest result and drives the local round clock.
+ gm.locator('#combat-prepare').wait_for(state='visible');gm.locator('#combat-prepare').click();gm.locator('#combat-import-tokens').click()
+ gm.wait_for_function('document.querySelectorAll(".combat-draft-row").length === 2')
+ gm.locator('.combat-draft-row').filter(has_text='Amber').locator('[data-combat-field=initiative]').fill('12')
+ gm.locator('.combat-draft-row').filter(has_text='Hilichurl').locator('[data-combat-field=initiative]').fill('18')
+ gm.locator('#combat-start').click();gm.wait_for_function("document.querySelector('#combat-active').textContent === 'Turno de Hilichurl'")
+ player.wait_for_function("document.querySelector('#combat-active').textContent === 'Turno de Hilichurl'",timeout=12000)
+ assert player.locator('#combat-next').is_hidden()
+ gm.locator('#combat-next').click();gm.wait_for_function("document.querySelector('#combat-active').textContent === 'Turno de Amber'")
+ gm.locator('#combat-next').click();gm.wait_for_function("document.querySelector('#combat-round').textContent === 'rodada 2'")
+ player.wait_for_function("document.querySelector('#combat-round').textContent === 'rodada 2'",timeout=12000)
+ assert player.locator('#round').inner_text()=='2'
  # NPC creation is another distinct published content kind.
  gm.locator('#room-item-kind').select_option('npc');gm.locator('#room-item-title').fill('Mira');gm.locator('#room-item-text').fill('Contratante da Guilda');gm.locator('#room-item-form button[value=present]').click()
  gm.wait_for_function("document.querySelectorAll('.room-content-card').length === 3")
@@ -123,6 +141,7 @@ with sync_playwright() as p:
  player.reload();player.locator('[data-tab=sala]').click();player.locator('#room-select').select_option(RID);player.locator('#room-panel').wait_for(state='visible')
  player.set_viewport_size({'width':390,'height':844});assert player.evaluate('document.documentElement.scrollWidth <= innerWidth')
  gm.locator('#room-player-view').check();assert gm.locator('#room-composer').is_hidden();assert gm.locator('.room-content-card').count()==2
+ gm.locator('#room-player-view').uncheck();gm.set_viewport_size({'width':390,'height':844});gm.locator('#combat-prepare').click();assert gm.evaluate('document.documentElement.scrollWidth <= innerWidth');gm.locator('#combat-cancel').click()
  player.locator('[data-tab=mesa]').click();assert player.locator('#roll-nick').input_value()=='Aventureira';assert player.locator('#roll-nick').get_attribute('readonly') is not None;player.locator('#roll-mode').select_option('advantage');player.locator('#roll').click();assert 'Aventureira • Vantagem · 2d20' in player.locator('#roll-detail').inner_text();player.locator('[data-tab=sala]').click();player.locator('#cloud-logout').click();player.locator('#cloud-auth').wait_for(state='visible');assert player.locator('#room-panel').is_hidden();assert player.locator('.room-content-card').count()==0
  assert not errors,errors
- b.close();print('PASS: two independent accounts; create/join room; hidden/revealed scene; map upload and zoom; NPC reveal; projection; session reload; logout clears shared content; mobile layout. tokens, assigned-player movement by keyboard and drag, search and save-and-present. API simulated; SQL permissions tested separately.')
+ b.close();print('PASS: two independent accounts; create/join room; hidden/revealed scene; map upload and zoom; NPC reveal; projection; session reload; logout clears shared content; mobile layout. tokens, assigned-player movement by keyboard and drag, search and save-and-present. API simulated; shared initiative and round synchronization; SQL permissions tested separately.')

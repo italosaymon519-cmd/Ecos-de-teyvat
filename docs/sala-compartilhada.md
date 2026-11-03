@@ -109,3 +109,19 @@ As permissões são aplicadas no banco: somente o mestre cria/remove tokens; o j
 O mapa suporta arraste com zoom, Ctrl/Command + rolagem e tela cheia. Em celulares, use os botões de zoom e deslize o mapa; tokens atribuídos podem ser arrastados com o dedo. Não há contagem automática de movimento, colisão, visão de parede ou neblina de guerra nesta versão. Todos os tokens de um mapa revelado são visíveis.
 
 Também foram adicionados busca por nome/descrição, filtros de visibilidade, miniaturas, prévia de upload, remoção de imagem ao editar, salvar e apresentar em um passo e retorno à apresentação do mestre depois de uma prévia individual. A última sala é lembrada por usuário neste navegador.
+
+## Ordem de iniciativa e turnos compartilhados
+
+Execute [`supabase/003-combat-initiative.sql`](../supabase/003-combat-initiative.sql) em uma nova consulta no SQL Editor. Essa atualização é independente da migração de tokens e pode ser repetida sem apagar combates. Não execute o setup inicial novamente.
+
+Na Sala compartilhada, clique em **Combate** ou localize **Ordem de iniciativa** junto ao mapa. O mestre escolhe **Preparar combate**, importa os tokens do mapa apresentado ou as fichas deste navegador e pode adicionar participantes manualmente. Os tokens não armazenam atributos: o bônus de Agilidade deve ser informado. A importação de fichas locais usa a Agilidade registrada.
+
+O botão **Rolar iniciativas** aplica 1d20 + bônus a cada participante. Alternativamente, digite o resultado total. Ao iniciar, o maior total age primeiro. Empates preservam a sequência de preparação, uma convenção explícita desta versão que a mesa pode ajustar alterando os totais.
+
+Todos os membros veem a ordem e o turno atual, atualizados a cada dois segundos. Somente o mestre inicia/encerra, avança ou retira/reativa participantes. Uma volta completa incrementa a rodada. Participantes retirados são ignorados; se todos forem retirados, o combate encerra. Reativar alguém não interrompe o turno atual.
+
+A rodada compartilhada passa a controlar a Mesa de aventura neste navegador: início de um novo combate zera EE e marcas e libera E, preservando PV e limites de Q por descanso; a próxima rodada expira marcas e atualiza a referência da recarga de E. Fichas continuam locais. Abrir novamente o mesmo combate não repete o reset. Dois mestres/abas tentando alterar a mesma versão recebem um aviso de conflito, evitando sobrescrita silenciosa.
+
+Fora de uma sala, **Novo combate** prepara a ordem no Painel do mestre com fichas locais e participantes já cadastrados. Os totais podem ser ajustados, e a rodada do encontro local atualiza a Mesa de aventura. Esses registros não são enviados à sala automaticamente.
+
+A persistência do combate usa `campaign_combats`, com leitura restrita a membros e escrita através de função autenticada do mestre. Não há dados privados do painel do mestre nessa tabela. O teste de políticas verifica permissões, conflitos de versão e rejeição de turnos inválidos em PostgreSQL/PGlite; o teste de navegador exercita dois clientes com API simulada.

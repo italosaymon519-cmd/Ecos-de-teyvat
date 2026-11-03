@@ -51,6 +51,19 @@ test('database enforces room membership, GM writes and hidden-image isolation',a
  assert.equal((await db.query('delete from campaign_tokens where id=$1 returning id',[enemy])).rows.length,0);
  await as(3);assert.equal((await db.query('select * from campaign_tokens')).rows.length,0);
  await as(1);await db.query('update campaign_tokens set x=60 where id=$1',[enemy]);
+ await db.exec('reset role');await db.exec(await readFile(new URL('../supabase/003-combat-initiative.sql',import.meta.url),'utf8'));await as(1);
+ const participant='40000000-0000-0000-0000-000000000001',battle='50000000-0000-0000-0000-000000000001';
+ const payload={combat_id:battle,combatants:[{id:participant,name:'Amber',initiative:18,bonus:3,enabled:true}],active_id:participant,round:1,running:true};
+ const saved=(await db.query('select public.save_campaign_combat($1,0,$2) as data',[room,JSON.stringify(payload)])).rows[0].data;
+ assert.equal(saved.revision,1);assert.equal(saved.active_id,participant);
+ await db.exec('reset role');await db.exec(await readFile(new URL('../supabase/003-combat-initiative.sql',import.meta.url),'utf8'));await as(1);assert.equal((await db.query('select revision from campaign_combats')).rows[0].revision,1);
+ await assert.rejects(db.query('select public.save_campaign_combat($1,0,$2)',[room,JSON.stringify(payload)]));
+ await assert.rejects(db.query('select public.save_campaign_combat($1,1,$2)',[room,JSON.stringify({...payload,active_id:enemy})]));
+ await as(2);assert.equal((await db.query('select * from campaign_combats')).rows.length,1);
+ await assert.rejects(db.query('select public.save_campaign_combat($1,1,$2)',[room,JSON.stringify(payload)]));
+ await assert.rejects(db.query('update campaign_combats set round=9 where room_id=$1',[room]));
+ await as(3);assert.equal((await db.query('select * from campaign_combats')).rows.length,0);
+
  await as(1);await db.query('update campaign_items set visible=false,is_current=false where id=$1',[draft]);
  const second=(await db.query("select public.create_campaign_room('Outra','Mestre') as id")).rows[0].id;
  await assert.rejects(db.query("insert into campaign_items(room_id,kind,title,image_path) values($1,'map','Caminho cruzado',$2)",[room,second+'/map.png']));

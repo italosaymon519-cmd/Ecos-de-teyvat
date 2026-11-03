@@ -1,0 +1,6 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {initiativeOrder,nextCombatTurn,rollInitiatives} from '../src/combat-rules.js';
+const entries=[{id:'a',initiative:12,bonus:2,enabled:true},{id:'b',initiative:18,bonus:3,enabled:true},{id:'c',initiative:12,bonus:0,enabled:true}];
+test('initiative sorts descending with stable ties',()=>{assert.deepEqual(initiativeOrder(entries).map(c=>c.id),['b','a','c']);assert.equal(entries[0].id,'a');});
+test('turn order wraps a round only after the last active participant',()=>{let c={combatants:entries,active_id:'b',round:1};c=nextCombatTurn(c);assert.equal(c.active_id,'a');assert.equal(c.round,1);c=nextCombatTurn(c);assert.equal(c.active_id,'c');c=nextCombatTurn(c);assert.equal(c.active_id,'b');assert.equal(c.round,2);});
+test('removing active participants advances from their position',()=>{const c={combatants:entries.map(p=>({...p,enabled:p.id!=='a'})),active_id:'a',round:2};assert.equal(nextCombatTurn(c).active_id,'c');assert.equal(nextCombatTurn(c).round,2);assert.throws(()=>nextCombatTurn({...c,combatants:[]}));});
+test('initiative uses d20 plus the participant bonus',()=>{assert.deepEqual(rollInitiatives(entries,()=>0).map(p=>p.initiative),[3,4,1]);});

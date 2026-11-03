@@ -35,3 +35,7 @@ A sala permite contas individuais, convites e acervo de mapas, cenas e NPCs. O m
 ### Tabuleiro e tokens
 
 O mapa compartilhado permite tokens de personagens, aliados e inimigos, arraste, zoom e tela cheia. Jogadores movem apenas personagens atribuídos a eles; o mestre controla todos. Para ativar, aplique a migração [002-map-tokens.sql](supabase/002-map-tokens.sql) após o setup inicial. Nenhum dado existente precisa ser apagado.
+
+### Iniciativa compartilhada
+
+A opção Combate da sala mostra a ordem de jogadores e inimigos, turno atual e rodada. O mestre pode importar tokens ou fichas locais, rolar/ajustar iniciativas e avançar a fila. Aplique [003-combat-initiative.sql](supabase/003-combat-initiative.sql) para persistir o controle compartilhado; o encontro local permanece disponível.
