@@ -53,3 +53,11 @@ A marca preparada agora corresponde obrigatoriamente à Visão cadastrada. Os se
 Em Personagens, abra **Rolar perícias pela ficha**, ou use **Rolar perícia** no cartão da Mesa. Cada um dos 18 testes mostra o bônus pronto e oferece normal, vantagem ou desvantagem. O cálculo usa d20 + atributo e, somente se a perícia estiver treinada, proficiência de nível (+2 em 1–4; +3 em 5–8; +4 em 9–12; +5 em 13–16; +6 em 17–20). Fichas anteriores assumem nível 1 até edição. Não há soma automática de especialização, artefatos ou bônus narrativos não selecionados.
 
 O resultado identifica o jogador (nick da sala/local, ou nome do personagem como alternativa), o personagem, os dados e cada parcela do cálculo. O resultado também entra no histórico local. Os limites de duas perícias e dois talentos permanecem. Um 20 ou 1 natural no teste de perícia não aplica automaticamente as regras exclusivas de ataques.
+
+### Benefícios defensivos das Visões
+
+A Mesa e a ficha exibem o benefício da Visão com um uso por combate. Geo rola 1d6 de escudo; Hydro recupera até 2 PV após confirmação de resistência bem-sucedida; Electro acrescenta +2 à Defesa até o próximo ataque registrado, inclusive um erro com dano zero. Pyro reserva redução de 2 para dano de ataque; Cryo reserva redução de 2 para dano de inimigo afetado por Cryo. Dendro reserva +2 para o teste contra condição prejudicial na opção Teste de resistência.
+
+Ao registrar dano, informe se veio de ataque e se o inimigo está afetado por Cryo. A redução aplicável é calculada antes da absorção do escudo, e só o restante reduz PV. O limite de uso não volta com descanso nem com a próxima rodada: apenas no início de um novo combate. Trocar de Visão remove efeitos incompatíveis e preserva o uso já gasto.
+
+Anemo registra o reposicionamento reativo de 3 m, sem ataques de oportunidade; a posição do token continua sendo ajustada manualmente porque o mapa não possui escala em metros. Use Concluir deslocamento para resolver o aviso. Gatilhos narrativos (ter resistido, ter sido atacado, ter acertado Electro) são confirmados pelo jogador/mestre, não inferidos de uma rolagem sem CD. Essas alterações continuam nas fichas locais; não enviam PV ou efeitos ao banco da sala.
