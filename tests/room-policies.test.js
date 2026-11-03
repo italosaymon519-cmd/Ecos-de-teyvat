@@ -34,10 +34,27 @@ test('database enforces room membership, GM writes and hidden-image isolation',a
  await db.query("update campaign_items set public_text='Ataque' where id=$1",[draft]);
  assert.equal((await db.query('select public_text from campaign_items')).rows[0].public_text,'Pista');
  await as(3);assert.equal((await db.query('select * from campaign_items')).rows.length,0);assert.equal((await db.query('select * from storage.objects')).rows.length,0);
+ await db.exec('reset role');
+ await db.exec(await readFile(new URL('../supabase/002-map-tokens.sql',import.meta.url),'utf8'));
+ await as(1);
+ const owner='00000000-0000-0000-0000-000000000002';
+ const token=(await db.query("insert into campaign_tokens(room_id,item_id,name,kind,owner_id) values($1,$2,'Viajante','character',$3) returning id",[room,draft,owner])).rows[0].id;
+ const enemy=(await db.query("insert into campaign_tokens(room_id,item_id,name,kind) values($1,$2,'Hilichurl','enemy') returning id",[room,draft])).rows[0].id;
+ await db.exec('reset role');await db.exec(await readFile(new URL('../supabase/002-map-tokens.sql',import.meta.url),'utf8'));
+ await as(2);
+ assert.equal((await db.query('select * from campaign_tokens')).rows.length,2);
+ assert.equal((await db.query('update campaign_tokens set x=75,y=30 where id=$1 returning x',[token])).rows[0].x,75);
+ assert.equal((await db.query('update campaign_tokens set x=1 where id=$1 returning id',[enemy])).rows.length,0);
+ await assert.rejects(db.query('update campaign_tokens set owner_id=auth.uid() where id=$1',[enemy]));
+ await assert.rejects(db.query('update campaign_tokens set x=101 where id=$1',[token]));
+ await assert.rejects(db.query("insert into campaign_tokens(room_id,item_id,name,kind) values($1,$2,'Fraude','enemy')",[room,draft]));
+ assert.equal((await db.query('delete from campaign_tokens where id=$1 returning id',[enemy])).rows.length,0);
+ await as(3);assert.equal((await db.query('select * from campaign_tokens')).rows.length,0);
+ await as(1);await db.query('update campaign_tokens set x=60 where id=$1',[enemy]);
  await as(1);await db.query('update campaign_items set visible=false,is_current=false where id=$1',[draft]);
  const second=(await db.query("select public.create_campaign_room('Outra','Mestre') as id")).rows[0].id;
  await assert.rejects(db.query("insert into campaign_items(room_id,kind,title,image_path) values($1,'map','Caminho cruzado',$2)",[room,second+'/map.png']));
- await as(2);assert.equal((await db.query('select * from campaign_items')).rows.length,0);assert.equal((await db.query('select * from storage.objects')).rows.length,0);
+ await as(2);assert.equal((await db.query('select * from campaign_items')).rows.length,0);assert.equal((await db.query('select * from storage.objects')).rows.length,0);assert.equal((await db.query('select * from campaign_tokens')).rows.length,0);assert.equal((await db.query('update campaign_tokens set x=20 where id=$1 returning id',[token])).rows.length,0);
  await db.exec("reset role;set request.jwt.claim.sub='';set role anon;");
  await assert.rejects(db.query('select * from campaign_items'));await assert.rejects(db.query('select public.create_campaign_room($1,$2)',['Fraude','Anônimo']));
  }finally{await db.close();}

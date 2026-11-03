@@ -7,7 +7,7 @@ import json,base64
 from playwright.sync_api import sync_playwright
 ROOT=Path(__file__).resolve().parents[2]/'dist'
 RID='11111111-1111-1111-1111-111111111111';CODE='ABCDEF0123456789ABCDEF0123456789'
-rooms=[];members=[];items=[];files={};errors=[]
+rooms=[];members=[];items=[];tokens=[];files={};errors=[]
 def reply(route,data,status=200):route.fulfill(status=status,content_type='application/json',body=json.dumps(data))
 def api(route):
  req=route.request;u=urlparse(req.url);path=u.path;method=req.method;token=req.headers.get('authorization','').replace('Bearer ','');user=token.replace('token-','');q=parse_qs(u.query)
@@ -26,6 +26,18 @@ def api(route):
   return reply(route,RID)
  if path=='/rest/v1/campaign_rooms':return reply(route,rooms if any(m['user_id']==user for m in members) else [])
  if path=='/rest/v1/campaign_members':return reply(route,members)
+ if path=='/rest/v1/campaign_tokens':
+  if method=='GET':
+   ids=[i['id'] for i in items if i['visible'] or user=='gm']
+   return reply(route,[t for t in tokens if t['item_id'] in ids and t['item_id']==q['item_id'][0][3:]])
+  if method=='POST':
+   if user!='gm':return reply(route,{},403)
+   t={'id':'t'+str(len(tokens)+1),**body};tokens.append(t);return reply(route,[t])
+  t=next(t for t in tokens if t['id']==q['id'][0][3:])
+  if method=='PATCH':
+   if user!='gm' and t.get('owner_id')!=user:return reply(route,[])
+   t.update(body);return reply(route,[t])
+  if method=='DELETE' and user=='gm':tokens.remove(t);return reply(route,{})
  if path=='/rest/v1/campaign_items':
   if method=='GET':return reply(route,[i for i in items if user=='gm' or i['visible']])
   if user!='gm':return reply(route,{'message':'denied'},403)
@@ -50,7 +62,7 @@ def static(route):
 def login(page,email):
  page.goto('https://ecos.test/');page.locator('[data-tab=sala]').click();page.locator('#cloud-email').fill(email);page.locator('#cloud-password').fill('long-password-123');page.locator('#cloud-auth-form button[type=submit]').click();page.locator('#cloud-account').wait_for(state='visible')
 def item(page,kind,name,text):
- page.locator('#room-item-kind').select_option(kind);page.locator('#room-item-title').fill(name);page.locator('#room-item-text').fill(text);page.locator('#room-item-form button[type=submit]').click();page.wait_for_function("document.querySelectorAll('.room-content-card').length > 0")
+ page.locator('#room-item-kind').select_option(kind);page.locator('#room-item-title').fill(name);page.locator('#room-item-text').fill(text);page.locator('#room-item-form button[value=save]').click();page.wait_for_function("document.querySelectorAll('.room-content-card').length > 0")
 with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
  def context():
@@ -69,19 +81,45 @@ with sync_playwright() as p:
  gm.locator('#room-item-kind').select_option('map');gm.locator('#room-item-title').fill('Mapa da campanha');gm.locator('#room-item-text').fill('Teyvat')
  png=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aS1sAAAAASUVORK5CYII=')
  gm.locator('#room-item-image').set_input_files({'name':'map.png','mimeType':'image/png','buffer':png})
- gm.locator('#room-item-form button[type=submit]').click();gm.wait_for_function("document.querySelectorAll('.room-content-card').length === 2")
+ gm.locator('#room-item-form button[value=save]').click();gm.wait_for_function("document.querySelectorAll('.room-content-card').length === 2")
  # Image bytes served independently of metadata response.
  for ctx in [gmctx,pc]:ctx.route('https://db.test/storage/v1/object/sign/campaign-images/image.png?token=test',lambda r:r.fulfill(content_type='image/png',body=png))
  gm.locator('.room-content-card').filter(has_text='Mapa da campanha').locator('[data-room-action=present]').click();player.locator('#room-refresh').click()
  player.wait_for_function("document.querySelector('#room-stage-title').textContent === 'Mapa da campanha'")
  player.locator('#room-stage-image').wait_for(state='visible');player.wait_for_function("document.querySelector('#room-stage-image').naturalWidth > 0");player.locator('#room-zoom-in').click();assert player.locator('#room-zoom-label').inner_text()=='150%'
+ # Tokens persist on the map; only assigned players can move them.
+ gm.locator('#room-token-tools').wait_for(state='visible')
+ for expected,(name,kind,owner) in enumerate([('Amber','character','player'),('Hilichurl','enemy','')],start=1):
+  gm.locator('#room-token-name').fill(name);gm.locator('#room-token-kind').select_option(kind)
+  if owner:gm.locator('#room-token-owner').select_option(owner)
+  gm.locator('#room-token-form button').click()
+  gm.wait_for_function('document.querySelectorAll(".board-token").length === '+str(expected))
+ player.wait_for_function('document.querySelectorAll(".board-token").length === 2',timeout=12000)
+ assert player.locator('.board-token.movable').count()==1
+ before=tokens[0]['x']
+ player.locator('.board-token.movable').focus();player.locator('.board-token.movable').press('ArrowRight')
+ player.wait_for_function('document.querySelector(".board-token.movable").style.left !== "'+str(before)+'%"')
+ assert tokens[0]['x']==before+1
+ gm.wait_for_function('document.querySelector("[data-token-id=t1]").style.left === "'+str(tokens[0]['x'])+'%"',timeout=12000)
+ # Drag works independently of map zoom and persists to the second browser.
+ player.locator('.board-token.movable').scroll_into_view_if_needed()
+ box=player.locator('.board-token.movable').bounding_box();before_drag=tokens[0]['x']
+ px,py=box['x']+box['width']/2,box['y']+box['height']/2
+ player.mouse.move(px,py);player.mouse.down();player.mouse.move(px+20,py+15,steps=5);player.mouse.up()
+ player.wait_for_function("parseFloat(document.querySelector('.board-token.movable').style.left) !== "+str(before_drag))
+ player.wait_for_function("document.querySelector('#room-token-status').textContent.includes('posição atualizada')");assert tokens[0]['x']!=before_drag
+ # A private preview does not replace what is presented to others.
+ gm.locator('#room-search').fill('secreta');assert gm.locator('.room-content-card').count()==1
+ gm.locator('[data-room-action=preview]').click();assert gm.locator('#room-follow').is_visible()
+ gm.locator('#room-follow').click();assert gm.locator('#room-stage-title').inner_text()=='Mapa da campanha'
+ gm.locator('#room-search').fill('')
  # NPC creation is another distinct published content kind.
- item(gm,'npc','Mira','Contratante da Guilda')
+ gm.locator('#room-item-kind').select_option('npc');gm.locator('#room-item-title').fill('Mira');gm.locator('#room-item-text').fill('Contratante da Guilda');gm.locator('#room-item-form button[value=present]').click()
  gm.wait_for_function("document.querySelectorAll('.room-content-card').length === 3")
- gm.locator('.room-content-card').filter(has_text='Mira').locator('[data-room-action=visibility]').click();player.locator('#room-refresh').click();player.wait_for_function("document.querySelectorAll('.room-content-card').length === 2")
+ player.wait_for_function("document.querySelector('#room-stage-title').textContent === 'Mira'",timeout=12000);assert player.locator('.room-content-card').count()==2
  player.reload();player.locator('[data-tab=sala]').click();player.locator('#room-select').select_option(RID);player.locator('#room-panel').wait_for(state='visible')
  player.set_viewport_size({'width':390,'height':844});assert player.evaluate('document.documentElement.scrollWidth <= innerWidth')
  gm.locator('#room-player-view').check();assert gm.locator('#room-composer').is_hidden();assert gm.locator('.room-content-card').count()==2
  player.locator('#cloud-logout').click();player.locator('#cloud-auth').wait_for(state='visible');assert player.locator('#room-panel').is_hidden();assert player.locator('.room-content-card').count()==0
  assert not errors,errors
- b.close();print('PASS: two independent accounts; create/join room; hidden/revealed scene; map upload and zoom; NPC reveal; projection; session reload; logout clears shared content; mobile layout. API simulated; SQL permissions tested separately.')
+ b.close();print('PASS: two independent accounts; create/join room; hidden/revealed scene; map upload and zoom; NPC reveal; projection; session reload; logout clears shared content; mobile layout. tokens, assigned-player movement by keyboard and drag, search and save-and-present. API simulated; SQL permissions tested separately.')

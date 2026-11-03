@@ -91,3 +91,21 @@ npm run preview
 O preview serve somente `dist/`. Para um build conectado, forneça as duas variáveis públicas ao processo de build, conforme `.env.example`; o projeto não lê `.env` automaticamente. `npm start` continua servindo o desenvolvimento local com configuração de sala vazia.
 
 Testes de navegador disponíveis em `tests/browser/shared_room.py` exigem Python Playwright e Chromium em `/usr/bin/chromium`. Exercitam duas contas e uma API simulada. As políticas SQL são testadas separadamente com PostgreSQL/PGlite, incluindo leitura de arquivos ocultos, alteração de papel, acesso fora da sala e convites.
+
+## Tabuleiro compartilhado com tokens
+
+Depois da configuração inicial, execute **somente** [`supabase/002-map-tokens.sql`](../supabase/002-map-tokens.sql) em uma nova consulta no SQL Editor do Supabase. Não execute o script inicial novamente. Essa migração adiciona tokens e suas permissões sem apagar salas, mapas ou participantes. Ela pode ser repetida preservando os tokens existentes.
+
+Na sala, apresente um conteúdo do tipo **Mapa**, com uma imagem. Clique em **Atualizar agora** após aplicar a migração. A área **Tokens do tabuleiro** aparece para o mestre:
+
+1. Informe nome, tipo, cor e tamanho do token.
+2. Para um personagem, escolha o membro que poderá movê-lo; jogadores precisam entrar na sala antes de serem atribuídos. Inimigos e aliados são movidos pelo mestre.
+3. Clique em **Colocar no mapa**. Tokens novos recebem um pequeno deslocamento para evitar sobreposição inicial.
+4. Arraste os tokens ou use as setas do teclado quando estiverem focados. As posições são salvas como porcentagens do mapa, mantendo a referência entre telas e níveis de zoom.
+5. Outros participantes recebem as posições a cada dois segundos. Uma falha no salvamento restaura a posição anterior e informa o erro.
+
+As permissões são aplicadas no banco: somente o mestre cria/remove tokens; o jogador só pode alterar as coordenadas de personagens atribuídos a ele em mapas revelados. Não pode mudar dono, nome ou posição de inimigos. Tokens de mapas ocultos não são consultáveis por jogadores.
+
+O mapa suporta arraste com zoom, Ctrl/Command + rolagem e tela cheia. Em celulares, use os botões de zoom e deslize o mapa; tokens atribuídos podem ser arrastados com o dedo. Não há contagem automática de movimento, colisão, visão de parede ou neblina de guerra nesta versão. Todos os tokens de um mapa revelado são visíveis.
+
+Também foram adicionados busca por nome/descrição, filtros de visibilidade, miniaturas, prévia de upload, remoção de imagem ao editar, salvar e apresentar em um passo e retorno à apresentação do mestre depois de uma prévia individual. A última sala é lembrada por usuário neste navegador.

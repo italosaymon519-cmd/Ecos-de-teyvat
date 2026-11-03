@@ -31,3 +31,7 @@ Inclui dez cenários de Mondstadt e a abertura original “Ecos sob os Mil Vento
 ## Contas, mapas e sala compartilhada
 
 A sala permite contas individuais, convites e acervo de mapas, cenas e NPCs. O mestre controla revelação e apresentação; jogadores recebem atualizações a cada cinco segundos. Siga [a configuração do Supabase e Netlify](docs/sala-compartilhada.md). Sem as duas variáveis públicas e o SQL aplicado, o site informa que as contas ainda não estão disponíveis. As funcionalidades locais continuam funcionando.
+
+### Tabuleiro e tokens
+
+O mapa compartilhado permite tokens de personagens, aliados e inimigos, arraste, zoom e tela cheia. Jogadores movem apenas personagens atribuídos a eles; o mestre controla todos. Para ativar, aplique a migração [002-map-tokens.sql](supabase/002-map-tokens.sql) após o setup inicial. Nenhum dado existente precisa ser apagado.

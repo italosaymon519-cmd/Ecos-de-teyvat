@@ -18,7 +18,7 @@ export class CampaignCloud {
     if(!r.ok){const message=data?.msg||data?.message||data?.error_description||data?.error;
       if(r.status===401)throw Error('Sua sessão expirou. Entre novamente.');
       if(r.status===403)throw Error('Sua conta não tem permissão para esta ação.');
-      throw Error(typeof message==='string'?message.slice(0,300):'Não foi possível concluir a operação.');}
+      const error=Error(typeof message==='string'?message.slice(0,300):'Não foi possível concluir a operação.');error.code=data?.code;error.status=r.status;throw error;}
     return data;
   }
   async refresh(){if(this.refreshing)return this.refreshing;const token=this.session?.refresh_token;if(!token)throw Error('Entre novamente na sua conta.');this.refreshing=(async()=>{try{const s=await this.request('/auth/v1/token?grant_type=refresh_token',{method:'POST',body:{refresh_token:token},auth:false});if(this.session?.refresh_token!==token)throw Error('A sessão foi alterada. Entre novamente.');this.setSession(s);return s;}catch(e){if(this.session?.refresh_token===token)this.setSession(null);throw e;}finally{this.refreshing=null;}})();return this.refreshing;}
@@ -39,5 +39,9 @@ export class CampaignCloud {
   async deleteItem(id){return this.request('/rest/v1/campaign_items?id=eq.'+encodeURIComponent(id),{method:'DELETE'});}
   async upload(roomId,file){const ext={'image/png':'png','image/jpeg':'jpg','image/webp':'webp'}[file.type];if(!ext||file.size>15728640)throw Error('Envie PNG, JPG ou WebP de até 15 MB.');const path=roomId+'/'+crypto.randomUUID()+'.'+ext;await this.request('/storage/v1/object/campaign-images/'+path,{method:'POST',body:file,headers:{'Content-Type':file.type,'x-upsert':'false'}});return path;}
   async removeImage(path){return this.request('/storage/v1/object/campaign-images',{method:'DELETE',body:{prefixes:[path]}});}
+  async tokens(itemId){return this.request('/rest/v1/campaign_tokens?item_id=eq.'+encodeURIComponent(itemId)+'&select=*&order=id.asc');}
+  async createToken(token){return this.request('/rest/v1/campaign_tokens',{method:'POST',body:token,headers:{Prefer:'return=representation'}});}
+  async moveToken(id,x,y){return this.request('/rest/v1/campaign_tokens?id=eq.'+encodeURIComponent(id),{method:'PATCH',body:{x,y},headers:{Prefer:'return=representation'}});}
+  async deleteToken(id){return this.request('/rest/v1/campaign_tokens?id=eq.'+encodeURIComponent(id),{method:'DELETE'});}
   async imageUrl(path){if(!path)return null;const safe=path.split('/').map(encodeURIComponent).join('/');const r=await this.request('/storage/v1/object/sign/campaign-images/'+safe,{method:'POST',body:{expiresIn:60}});const signed=r?.signedURL||r?.signedUrl;if(!signed)throw Error('Não foi possível carregar a imagem.');const url=new URL(signed.startsWith('/object/')?'/storage/v1'+signed:signed,this.config.url);if(url.origin!==new URL(this.config.url).origin)throw Error('Endereço de imagem inválido.');return url.href;}
 }
