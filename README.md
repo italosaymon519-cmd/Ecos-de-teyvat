@@ -47,3 +47,9 @@ A ficha permite no máximo duas perícias treinadas e dois talentos, conforme a 
 A reação mostra preparação e resultado no próprio painel. Prepare a marca do primeiro personagem e selecione o segundo. A reação consome a marca e dá 1 EE a cada participante, até 3; dano, escudos e condições continuam manuais. O fluxo usa as fichas locais deste navegador e explica quando faltam dois participantes. As combinações de Anemo/Geo com elementos compatíveis aceitam ambas as ordens descritas na tabela.
 
 A marca preparada agora corresponde obrigatoriamente à Visão cadastrada. Os seletores mostram somente esse elemento, a reação valida a correspondência e marcas antigas incompatíveis são limpas ao carregar/importar ou trocar a Visão. As reações possíveis continuam sendo determinadas pela combinação dos elementos dos dois participantes.
+
+### Testes de perícia pela ficha
+
+Em Personagens, abra **Rolar perícias pela ficha**, ou use **Rolar perícia** no cartão da Mesa. Cada um dos 18 testes mostra o bônus pronto e oferece normal, vantagem ou desvantagem. O cálculo usa d20 + atributo e, somente se a perícia estiver treinada, proficiência de nível (+2 em 1–4; +3 em 5–8; +4 em 9–12; +5 em 13–16; +6 em 17–20). Fichas anteriores assumem nível 1 até edição. Não há soma automática de especialização, artefatos ou bônus narrativos não selecionados.
+
+O resultado identifica o jogador (nick da sala/local, ou nome do personagem como alternativa), o personagem, os dados e cada parcela do cálculo. O resultado também entra no histórico local. Os limites de duas perícias e dois talentos permanecem. Um 20 ou 1 natural no teste de perícia não aplica automaticamente as regras exclusivas de ataques.
