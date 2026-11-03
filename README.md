@@ -2,14 +2,15 @@
 
 Mesa de RPG em português, com fichas, PV, EE, recargas, reações elementais, dados e diário.
 
-Requer Node.js 22 ou superior. Sem dependências externas.
+Requer Node.js 22 ou superior. Sem dependências de runtime. Os testes de permissões usam PostgreSQL/PGlite como dependência de desenvolvimento.
 
 ```sh
+npm ci
 npm start
 npm test
 ```
 
-Servidor na porta 3000, configurável por `PORT`. O progresso fica no localStorage do navegador. Exporte regularmente uma cópia JSON; a importação substitui a campanha local após confirmação. Não há login, sincronização ou multiplayer nesta versão.
+Servidor na porta 3000, configurável por `PORT`. O progresso fica no localStorage do navegador. Exporte regularmente uma cópia JSON; a importação substitui a campanha local após confirmação. As fichas e o diário originais são locais. Contas e sala compartilhada ficam disponíveis após conectar o Supabase, conforme as instruções abaixo.
 
 Regras: máximo 3 EE; E gera 1 EE se funcionar e volta após um turno de intervalo; Q exige 3 EE e respeita limites por descanso. Reações dão 1 EE a cada um dos dois participantes e consomem a marca. Avançar rodada remove marcas. Cada ficha registra uma marca preparada em um inimigo narrativo: não é um gerenciador individual de inimigos. O elemento usado pelo segundo participante é o da sua Visão; efeitos espalhados e autorreações ficam para a mesa.
 
@@ -26,3 +27,7 @@ A biblioteca inclui os três guias da campanha. A seção Mapa permite carregar 
 ## Painel do mestre
 
 Inclui dez cenários de Mondstadt e a abertura original “Ecos sob os Mil Ventos”, com cenas, NPCs e missões editáveis. Iniciativa, turnos, PV e condições são manuais; o painel usa backup separado, sem senha ou sincronização. Consulte [as referências e limitações](docs/mondstadt.md).
+
+## Contas, mapas e sala compartilhada
+
+A sala permite contas individuais, convites e acervo de mapas, cenas e NPCs. O mestre controla revelação e apresentação; jogadores recebem atualizações a cada cinco segundos. Siga [a configuração do Supabase e Netlify](docs/sala-compartilhada.md). Sem as duas variáveis públicas e o SQL aplicado, o site informa que as contas ainda não estão disponíveis. As funcionalidades locais continuam funcionando.

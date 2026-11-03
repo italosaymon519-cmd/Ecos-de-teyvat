@@ -1,0 +1,44 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';import {PGlite} from '@electric-sql/pglite';
+test('database enforces room membership, GM writes and hidden-image isolation',async()=>{
+ const db=new PGlite();
+ try{
+ await db.exec(`create role anon;create role authenticated;create schema auth;create schema storage;
+ create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+ grant usage on schema auth,public,storage to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;
+ create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
+ create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text);
+ alter table storage.objects enable row level security;grant select,insert,update,delete on storage.objects to authenticated;
+ insert into auth.users values('00000000-0000-0000-0000-000000000001'),('00000000-0000-0000-0000-000000000002'),('00000000-0000-0000-0000-000000000003');`);
+ await db.exec(await readFile(new URL('../supabase/setup.sql',import.meta.url),'utf8'));
+ const as=async(id)=>db.exec(`reset role;set request.jwt.claim.sub='00000000-0000-0000-0000-00000000000${id}';set role authenticated;`);
+ await as(1);
+ const room=(await db.query("select public.create_campaign_room('Mondstadt','Mestre') as id")).rows[0].id;
+ const invite=(await db.query('select public.campaign_invite($1) as code',[room])).rows[0].code;
+ const draft=(await db.query("insert into campaign_items(room_id,kind,title,public_text,image_path) values($1,'map','Mapa secreto','Pista', $2) returning id",[room,room+'/secret.png'])).rows[0].id;
+ await db.query("insert into storage.objects(bucket_id,name) values('campaign-images',$1)",[room+'/secret.png']);
+ await as(2);assert.equal((await db.query('select id,name,gm_id from campaign_rooms')).rows.length,0);
+ await assert.rejects(db.query("select public.join_campaign_room('INVALID','Jogador')"));
+ await db.query('select public.join_campaign_room($1,$2)',[invite,'Jogador']);
+ await assert.rejects(db.query('select invite_code from campaign_rooms'));await assert.rejects(db.query('select public.campaign_invite($1)',[room]));
+ assert.equal((await db.query('select id,name,gm_id from campaign_rooms')).rows.length,1);
+ assert.equal((await db.query('select * from campaign_members')).rows.length,2);
+ assert.equal((await db.query('select * from campaign_items')).rows.length,0);
+ assert.equal((await db.query('select * from storage.objects')).rows.length,0);
+ await assert.rejects(db.query("insert into campaign_items(room_id,kind,title) values($1,'scene','Invasão')",[room]));
+ await assert.rejects(db.query('update campaign_rooms set gm_id=auth.uid() where id=$1',[room]));
+ await assert.rejects(db.query('insert into campaign_members(room_id,user_id,display_name) values($1,auth.uid(),$2)',[room,'Fraude']));
+ await assert.rejects(db.query('select public.present_campaign_item($1)',[draft]));
+ await assert.rejects(db.query("insert into storage.objects(bucket_id,name) values('campaign-images',$1)",[room+'/bad.png']));
+ await as(1);await db.query('select public.present_campaign_item($1)',[draft]);
+ await as(2);assert.equal((await db.query('select title from campaign_items')).rows[0].title,'Mapa secreto');assert.equal((await db.query('select * from storage.objects')).rows.length,1);
+ await db.query("update campaign_items set public_text='Ataque' where id=$1",[draft]);
+ assert.equal((await db.query('select public_text from campaign_items')).rows[0].public_text,'Pista');
+ await as(3);assert.equal((await db.query('select * from campaign_items')).rows.length,0);assert.equal((await db.query('select * from storage.objects')).rows.length,0);
+ await as(1);await db.query('update campaign_items set visible=false,is_current=false where id=$1',[draft]);
+ const second=(await db.query("select public.create_campaign_room('Outra','Mestre') as id")).rows[0].id;
+ await assert.rejects(db.query("insert into campaign_items(room_id,kind,title,image_path) values($1,'map','Caminho cruzado',$2)",[room,second+'/map.png']));
+ await as(2);assert.equal((await db.query('select * from campaign_items')).rows.length,0);assert.equal((await db.query('select * from storage.objects')).rows.length,0);
+ await db.exec("reset role;set request.jwt.claim.sub='';set role anon;");
+ await assert.rejects(db.query('select * from campaign_items'));await assert.rejects(db.query('select public.create_campaign_room($1,$2)',['Fraude','Anônimo']));
+ }finally{await db.close();}
+});
