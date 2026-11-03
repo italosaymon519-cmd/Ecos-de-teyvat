@@ -69,6 +69,7 @@ with sync_playwright() as p:
   c=b.new_context(viewport={'width':1440,'height':1000});c.route('https://ecos.test/**',static);c.route('https://db.test/**',api);page=c.new_page();page.on('pageerror',lambda e:errors.append(str(e)));return c,page
  gmctx,gm=context();pc,player=context();login(gm,'gm@example.test')
  gm.locator('#room-create-form [name=roomName]').fill('Mondstadt compartilhada');gm.locator('#room-create-form [name=displayName]').fill('Mestre');gm.locator('#room-create-form button').click();gm.locator('#room-composer').wait_for(state='visible')
+ assert gm.locator('#room-open-tokens').is_visible();assert gm.locator('#room-token-help').inner_text().startswith('Primeiro prepare');assert gm.locator('#room-token-form').is_hidden()
  item(gm,'scene','Cena secreta','Texto público sem segredo')
  login(player,'player@example.test');player.locator('#room-join-form [name=code]').fill(CODE);player.locator('#room-join-form [name=displayName]').fill('Aventureira');player.locator('#room-join-form button').click();player.locator('#room-panel').wait_for(state='visible')
  assert player.locator('.room-content-card').count()==0
