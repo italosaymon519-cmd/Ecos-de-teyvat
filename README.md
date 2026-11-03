@@ -22,3 +22,7 @@ O mapa enviado na conversa ainda não integra o site: o arquivo original precisa
 Conecte este repositório ao projeto existente e selecione a branch `main`. O arquivo `netlify.toml` configura `npm run build` e a pasta pública `dist`. Somente HTML, CSS e JavaScript do site são incluídos; o servidor local e os testes não são publicados.
 
 A biblioteca inclui os três guias da campanha. A seção Mapa permite carregar uma imagem local com zoom; o mapa fica no IndexedDB do navegador e não integra o backup JSON.
+
+## Painel do mestre
+
+Inclui dez cenários de Mondstadt e a abertura original “Ecos sob os Mil Ventos”, com cenas, NPCs e missões editáveis. Iniciativa, turnos, PV e condições são manuais; o painel usa backup separado, sem senha ou sincronização. Consulte [as referências e limitações](docs/mondstadt.md).
