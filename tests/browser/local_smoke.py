@@ -1,4 +1,5 @@
 """Regression smoke test for the deployed frontend without a configured backend."""
+import mimetypes
 from pathlib import Path
 from urllib.parse import urlparse
 from playwright.sync_api import sync_playwright
@@ -9,7 +10,7 @@ with sync_playwright() as p:
  page.on('pageerror',lambda e:errors.append(str(e)))
  def serve(route):
   path=urlparse(route.request.url).path;f=ROOT/('index.html' if path=='/' else path.lstrip('/'))
-  route.fulfill(content_type='text/javascript' if f.suffix=='.js' else 'text/css' if f.suffix=='.css' else 'text/html',body=f.read_text())
+  route.fulfill(content_type='text/javascript' if f.suffix=='.js' else (mimetypes.guess_type(str(f))[0] or 'application/octet-stream'),body=f.read_bytes())
  page.route('https://local.test/**',serve);page.goto('https://local.test/')
  page.goto('https://local.test/?room=ABCDEF0123456789ABCDEF0123456789');assert page.locator('#room-code').input_value()=='ABCDEF0123456789ABCDEF0123456789';page.goto('https://local.test/');assert page.locator('#room-code').input_value()=='ABCDEF0123456789ABCDEF0123456789'
  page.locator('[data-tab=sala]').click();assert page.locator('#cloud-unconfigured').is_visible();assert page.locator('#cloud-auth').is_hidden()

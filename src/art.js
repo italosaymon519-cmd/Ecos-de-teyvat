@@ -1,0 +1,3 @@
+export const portraits={amber:{name:'Amber',image:'./assets/amber.png'},kaeya:{name:'Kaeya',image:'./assets/kaeya.png'},lisa:{name:'Lisa',image:'./assets/lisa.png'},jean:{name:'Jean',image:'./assets/jean.png'},barbara:{name:'Barbara',image:'./assets/barbara.png'},venti:{name:'Venti',image:'./assets/venti.png'},noelle:{name:'Noelle',image:'./assets/noelle.png'},collei:{name:'Collei',image:'./assets/collei.png'}};
+export function portraitFor(key){return Object.hasOwn(portraits,key)?portraits[key]:null;}
+export const elementArt=name=>['Pyro','Hydro','Anemo','Electro','Cryo','Geo','Dendro'].includes(name)?'./assets/'+name.toLowerCase()+'.png':null;

@@ -1,5 +1,5 @@
 import {publicCloudConfig} from './lib/cloud-config.js';
-import {mkdir,copyFile,readdir,rm,writeFile} from 'node:fs/promises';
+import {mkdir,copyFile,readdir,rm,writeFile,cp} from 'node:fs/promises';
 import {join} from 'node:path';
 const config=publicCloudConfig(process.env);
 const root=import.meta.dirname;
@@ -10,3 +10,5 @@ for(const file of await readdir(join(root,'src'))){if(/\.(js|css)$/.test(file))a
 console.log('Site estático preparado em dist/.');
 
 await writeFile(join(root,'dist','src','cloud-config.js'),'export const cloudConfig = '+JSON.stringify(config)+';\n');
+
+await cp(join(root,'assets'),join(root,'dist','assets'),{recursive:true});

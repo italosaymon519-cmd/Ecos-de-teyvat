@@ -1,3 +1,4 @@
+import mimetypes
 from pathlib import Path
 from urllib.parse import urlparse
 from playwright.sync_api import sync_playwright
@@ -7,7 +8,7 @@ with sync_playwright() as p:
  page.on('pageerror',lambda e:errors.append(str(e)))
  def serve(route):
   path=urlparse(route.request.url).path;f=ROOT/('index.html' if path=='/' else path.lstrip('/'))
-  route.fulfill(content_type='text/javascript' if f.suffix=='.js' else 'text/css' if f.suffix=='.css' else 'text/html',body=f.read_text())
+  route.fulfill(content_type='text/javascript' if f.suffix=='.js' else (mimetypes.guess_type(str(f))[0] or 'application/octet-stream'),body=f.read_bytes())
  page.route('https://ecos.test/**',serve);page.goto('https://ecos.test/')
  page.locator('#roll-nick').fill('Teste de dados');page.locator('[data-die="12"]').click();page.locator('#roll').click()
  assert '1d12:' in page.locator('#roll-detail').inner_text();assert 1<=int(page.locator('#die-result').inner_text())<=12

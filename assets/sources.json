@@ -1,0 +1,102 @@
+[
+  {
+    "file": "jean-splash.png",
+    "url": "https://gi.yatta.moe/assets/UI/UI_Gacha_AvatarImg_Qin.png",
+    "bytes": 1090290
+  },
+  {
+    "file": "amber.png",
+    "url": "https://gi.yatta.moe/assets/UI/UI_AvatarIcon_Ambor.png",
+    "bytes": 25413
+  },
+  {
+    "file": "kaeya.png",
+    "url": "https://gi.yatta.moe/assets/UI/UI_AvatarIcon_Kaeya.png",
+    "bytes": 32307
+  },
+  {
+    "file": "lisa.png",
+    "url": "https://gi.yatta.moe/assets/UI/UI_AvatarIcon_Lisa.png",
+    "bytes": 38924
+  },
+  {
+    "file": "jean.png",
+    "url": "https://gi.yatta.moe/assets/UI/UI_AvatarIcon_Qin.png",
+    "bytes": 26607
+  },
+  {
+    "file": "barbara.png",
+    "url": "https://gi.yatta.moe/assets/UI/UI_AvatarIcon_Barbara.png",
+    "bytes": 36473
+  },
+  {
+    "file": "venti.png",
+    "url": "https://gi.yatta.moe/assets/UI/UI_AvatarIcon_Venti.png",
+    "bytes": 32458
+  },
+  {
+    "file": "noelle.png",
+    "url": "https://gi.yatta.moe/assets/UI/UI_AvatarIcon_Noel.png",
+    "bytes": 36221
+  },
+  {
+    "file": "collei.png",
+    "url": "https://gi.yatta.moe/assets/UI/UI_AvatarIcon_Collei.png",
+    "bytes": 33934
+  },
+  {
+    "file": "pyro.png",
+    "url": "https://gi.yatta.moe/assets/UI/UI_Buff_Element_Fire.png",
+    "bytes": 2494
+  },
+  {
+    "file": "hydro.png",
+    "url": "https://gi.yatta.moe/assets/UI/UI_Buff_Element_Water.png",
+    "bytes": 2252
+  },
+  {
+    "file": "anemo.png",
+    "url": "https://gi.yatta.moe/assets/UI/UI_Buff_Element_Wind.png",
+    "bytes": 2769
+  },
+  {
+    "file": "electro.png",
+    "url": "https://gi.yatta.moe/assets/UI/UI_Buff_Element_Electric.png",
+    "bytes": 2117
+  },
+  {
+    "file": "cryo.png",
+    "url": "https://gi.yatta.moe/assets/UI/UI_Buff_Element_Ice.png",
+    "bytes": 2679
+  },
+  {
+    "file": "geo.png",
+    "url": "https://gi.yatta.moe/assets/UI/UI_Buff_Element_Rock.png",
+    "bytes": 2244
+  },
+  {
+    "file": "dendro.png",
+    "url": "https://gi.yatta.moe/assets/UI/UI_Buff_Element_Grass.png",
+    "bytes": 2164
+  },
+  {
+    "file": "mondstadt-card.png",
+    "url": "https://gi.yatta.moe/assets/UI/namecard/UI_NameCardPic_Md1_P.png",
+    "bytes": 148395
+  },
+  {
+    "file": "poppins-regular.woff2",
+    "url": "https://gi.yatta.moe/cf-fonts/s/poppins/5.2.7/latin/400/normal.woff2",
+    "bytes": 7884
+  },
+  {
+    "file": "poppins-semibold.woff2",
+    "url": "https://gi.yatta.moe/cf-fonts/s/poppins/5.2.7/latin/600/normal.woff2",
+    "bytes": 8000
+  },
+  {
+    "file": "OFL-Poppins.txt",
+    "url": "https://raw.githubusercontent.com/google/fonts/main/ofl/poppins/OFL.txt",
+    "bytes": 4385
+  }
+]

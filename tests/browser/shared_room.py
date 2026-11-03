@@ -1,6 +1,7 @@
 """UI integration with simulated Supabase API. Run after npm run build; requires Python Playwright + Chromium.
 Database authorization is separately exercised by room-policies.test.js against PostgreSQL/PGlite.
 """
+import mimetypes
 from pathlib import Path
 from urllib.parse import urlparse,parse_qs
 import json,base64
@@ -58,7 +59,7 @@ def static(route):
  path=urlparse(route.request.url).path
  if path=='/src/cloud-config.js':return route.fulfill(content_type='text/javascript',body="export const cloudConfig={url:'https://db.test',key:'sb_publishable_test'};")
  f=ROOT/('index.html' if path=='/' else path.lstrip('/'))
- route.fulfill(status=200,content_type='text/javascript' if f.suffix=='.js' else 'text/css' if f.suffix=='.css' else 'text/html',body=f.read_text())
+ route.fulfill(status=200,content_type='text/javascript' if f.suffix=='.js' else (mimetypes.guess_type(str(f))[0] or 'application/octet-stream'),body=f.read_bytes())
 def login(page,email):
  page.goto('https://ecos.test/');page.locator('[data-tab=sala]').click();page.locator('#cloud-email').fill(email);page.locator('#cloud-password').fill('long-password-123');page.locator('#cloud-auth-form button[type=submit]').click();page.locator('#cloud-account').wait_for(state='visible')
 def item(page,kind,name,text):
