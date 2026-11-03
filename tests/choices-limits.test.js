@@ -1,0 +1,2 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {choiceLimitError} from '../src/character-options.js';
+test('creation permits at most two skills and talents',()=>{assert.equal(choiceLimitError('Atletismo, Furtividade','Golpe Preciso, Passo Ágil'),'');assert.match(choiceLimitError('Atletismo,Furtividade,Medicina',''),/2 perícias/);assert.match(choiceLimitError('','Golpe Preciso,Passo Ágil,Postura Defensiva'),/2 talentos/);assert.equal(choiceLimitError('', ''),'');});
