@@ -70,8 +70,9 @@ with sync_playwright() as p:
  gmctx,gm=context();pc,player=context();login(gm,'gm@example.test')
  gm.locator('#room-create-form [name=roomName]').fill('Mondstadt compartilhada');gm.locator('#room-create-form [name=displayName]').fill('Mestre');gm.locator('#room-create-form button').click();gm.locator('#room-composer').wait_for(state='visible')
  assert gm.locator('#room-open-tokens').is_visible();assert gm.locator('#room-token-help').inner_text().startswith('Primeiro prepare');assert gm.locator('#room-token-form').is_hidden()
+ gm.locator('#room-show-code').click();gm.wait_for_function("document.querySelector('#room-invite-value').value.length === 32");assert gm.locator('#room-invite-value').input_value()==CODE
  item(gm,'scene','Cena secreta','Texto público sem segredo')
- login(player,'player@example.test');player.locator('#room-join-form [name=code]').fill(CODE);player.locator('#room-join-form [name=displayName]').fill('Aventureira');player.locator('#room-join-form button').click();player.locator('#room-panel').wait_for(state='visible')
+ login(player,'player@example.test');player.locator('#room-join-form [name=code]').fill('https://old--comfy-jalebi-598a6d.netlify.app/?room='+CODE);player.locator('#room-join-form [name=displayName]').fill('Aventureira');player.locator('#room-join-form button').click();player.locator('#room-panel').wait_for(state='visible')
  assert player.locator('.room-content-card').count()==0
  assert player.locator('#room-composer').is_hidden()
  gm.locator('[data-room-action=present]').first.click();player.wait_for_function("document.querySelector('#room-stage-title').textContent === 'Cena secreta'",timeout=12000)

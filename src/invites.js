@@ -1,0 +1,3 @@
+export function inviteCode(value){let code=String(value||'').trim();if(/^https?:\/\//i.test(code)){let url;try{url=new URL(code);}catch{throw Error('O link de convite está incompleto. Peça ao mestre para copiá-lo novamente.');}code=url.searchParams.get('room')||'';}
+ code=code.replace(/[\s-]/g,'').toUpperCase();if(!/^[A-F0-9]{32}$/.test(code))throw Error('Cole o link completo do convite ou o código de 32 caracteres fornecido pelo mestre.');return code;}
+export function invitationUrl(code,origin){const url=new URL(origin);url.search='';url.hash='';url.searchParams.set('room',inviteCode(code));return url.href;}

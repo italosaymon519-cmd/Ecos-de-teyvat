@@ -11,6 +11,7 @@ with sync_playwright() as p:
   path=urlparse(route.request.url).path;f=ROOT/('index.html' if path=='/' else path.lstrip('/'))
   route.fulfill(content_type='text/javascript' if f.suffix=='.js' else 'text/css' if f.suffix=='.css' else 'text/html',body=f.read_text())
  page.route('https://local.test/**',serve);page.goto('https://local.test/')
+ page.goto('https://local.test/?room=ABCDEF0123456789ABCDEF0123456789');assert page.locator('#room-code').input_value()=='ABCDEF0123456789ABCDEF0123456789';page.goto('https://local.test/');assert page.locator('#room-code').input_value()=='ABCDEF0123456789ABCDEF0123456789'
  page.locator('[data-tab=sala]').click();assert page.locator('#cloud-unconfigured').is_visible();assert page.locator('#cloud-auth').is_hidden()
  page.locator('#new-character').click();page.locator('#character-form [name=name]').fill('Viajante local');page.get_by_role('button',name='Salvar personagem').click()
  page.locator('[data-tab=mesa]').click();assert page.locator('.character-card').count()==1
