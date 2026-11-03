@@ -7,13 +7,13 @@ export class CampaignCloud {
   get configured(){return Boolean(this.config.url&&this.config.key);}
   get user(){return this.session?.user||null;}
   setSession(s){this.session=s?{...s,expires_at:s.expires_at||Math.floor(Date.now()/1000)+(s.expires_in||3600)}:null;try{if(this.session)this.storage.setItem(SESSION_KEY,JSON.stringify(this.session));else this.storage.removeItem(SESSION_KEY);}catch{}}
-  async request(path,{method='GET',body,headers={},auth=true,retry=true}={}) {
+  async request(path,{method='GET',body,headers={},auth=true,retry=true,keepalive=false}={}) {
     if(!this.configured)throw Error('A sala compartilhada ainda não foi conectada.');
     if(auth){if(!this.session)throw Error('Entre na sua conta.');if((this.session.expires_at||0)<Date.now()/1000+60)await this.refresh();}
-    const opts={method,headers:{apikey:this.config.key,...(auth?{Authorization:'Bearer '+this.session.access_token}:{}),...headers},signal:AbortSignal.timeout(25000)};
+    const opts={method,keepalive,headers:{apikey:this.config.key,...(auth?{Authorization:'Bearer '+this.session.access_token}:{}),...headers},signal:AbortSignal.timeout(25000)};
     if(body!==undefined){if(body instanceof Blob)opts.body=body;else{opts.body=JSON.stringify(body);opts.headers['Content-Type']='application/json';}}
     let r;try{r=await this.fetcher(this.config.url+path,opts);}catch{throw Error('Não foi possível conectar. Verifique a internet e tente novamente.');}
-    if(r.status===401&&auth&&retry){await this.refresh();return this.request(path,{method,body,headers,auth,retry:false});}
+    if(r.status===401&&auth&&retry){await this.refresh();return this.request(path,{method,body,headers,auth,retry:false,keepalive});}
     const text=await r.text();let data;try{data=text?JSON.parse(text):null;}catch{data=null;}
     if(!r.ok){const message=data?.msg||data?.message||data?.error_description||data?.error;
       if(r.status===401)throw Error('Sua sessão expirou. Entre novamente.');
@@ -32,6 +32,9 @@ export class CampaignCloud {
   }
   async logout(){const token=this.session?.access_token;this.setSession(null);if(token){const r=await this.fetcher(this.config.url+'/auth/v1/logout',{method:'POST',headers:{apikey:this.config.key,Authorization:'Bearer '+token},signal:AbortSignal.timeout(25000)});if(!r.ok&&r.status!==401)throw Error('Você saiu neste navegador; não foi possível revogar a sessão remota.');}}
   async rooms(){return this.request('/rest/v1/campaign_rooms?select=id,name,gm_id&order=created_at.asc');}
+  async characters(roomId){return this.request('/rest/v1/campaign_characters?room_id=eq.'+encodeURIComponent(roomId)+'&select=*&order=updated_at.asc');}
+  async presence(roomId){return this.request('/rest/v1/campaign_presence?room_id=eq.'+encodeURIComponent(roomId)+'&select=user_id,last_seen');}
+  async leavePresence(roomId,sessionId){return this.request('/rest/v1/rpc/leave_campaign_session',{method:'POST',body:{target_room:roomId,session_id:sessionId},keepalive:true});}
   async members(roomId){return this.request('/rest/v1/campaign_members?room_id=eq.'+encodeURIComponent(roomId)+'&select=user_id,display_name&order=joined_at.asc');}
   async items(roomId){return this.request('/rest/v1/campaign_items?room_id=eq.'+encodeURIComponent(roomId)+'&select=*&order=updated_at.desc');}
   async rpc(name,body){return this.request('/rest/v1/rpc/'+name,{method:'POST',body});}

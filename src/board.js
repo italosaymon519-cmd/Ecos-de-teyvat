@@ -1,3 +1,4 @@
+import {campaignSheetBridge} from './app.js';
 import {boardPosition,canMoveToken,tokenInitials} from './token-tools.js';
 const $=s=>document.querySelector(s),esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function createBoard({cloud,getContext,message}){
@@ -8,7 +9,7 @@ export function createBoard({cloud,getContext,message}){
  $('#room-token-list').innerHTML=tokens.map(t=>`<div class="token-list-row"><span><b>${esc(t.name)}</b> · ${t.kind==='enemy'?'Inimigo':t.kind==='ally'?'Aliado':'Personagem'}${t.owner_id?' · '+esc(c.members.find(m=>m.user_id===t.owner_id)?.display_name||'Jogador'):''}</span><button type="button" class="subtle danger" data-delete-token="${esc(t.id)}">Remover</button></div>`).join('');
  const owner=$('#room-token-owner'),old=owner.value,nextMembers=JSON.stringify(c.members);if(nextMembers!==memberSignature){memberSignature=nextMembers;owner.innerHTML='<option value="">Somente o mestre</option>'+c.members.map(m=>`<option value="${esc(m.user_id)}">${esc(m.display_name)}</option>`).join('');owner.value=old;}$('#room-token-owner').disabled=$('#room-token-kind').value!=='character';
  if(focused)$('#room-token-layer').querySelector(`[data-token-id="${CSS.escape(focused)}"]`)?.focus({preventScroll:true});
- let chars=[];try{chars=JSON.parse(localStorage.getItem('ecos-teyvat-v1')||'{}').characters||[];}catch{}$('#room-token-names').innerHTML=chars.filter(x=>typeof x.name==='string').map(x=>`<option value="${esc(x.name)}"></option>`).join('');
+ const chars=campaignSheetBridge.getCharacters();$('#room-token-names').innerHTML=chars.filter(x=>typeof x.name==='string').map(x=>`<option value="${esc(x.name)}"></option>`).join('');
  }
  async function refresh(){if(!mapId||inFlight||pendingMoves)return;const id=mapId,version=generation,writeVersion=revision;
  const request=(async()=>{try{const result=await cloud.tokens(id);if(version!==generation)return;available=true;if(!drag&&writeVersion===revision)tokens=result;$('#room-token-status').textContent='Arraste seu token para mover. As posições atualizam a cada 2 segundos.';draw();}catch(e){if(version!==generation)return;if(!cloud.user){message('Sua sessão expirou. Entre novamente.');return;}if(e.status===404||e.code==='PGRST205'||e.code==='42P01'){available=false;tokens=[];$('#room-token-status').textContent=getContext().isGM?'Os tokens aguardam ativação no banco da campanha (migração 002).':'O tabuleiro aguarda ativação pelo mestre.';draw();}else $('#room-token-status').textContent='Tokens não atualizados. '+e.message;}finally{if(inFlight===request)inFlight=null;}})();inFlight=request;return request;

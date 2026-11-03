@@ -4,11 +4,11 @@ Database authorization is separately exercised by room-policies.test.js against 
 import mimetypes
 from pathlib import Path
 from urllib.parse import urlparse,parse_qs
-import json,base64
+import json,base64,time
 from playwright.sync_api import sync_playwright
 ROOT=Path(__file__).resolve().parents[2]/'dist'
 RID='11111111-1111-1111-1111-111111111111';CODE='ABCDEF0123456789ABCDEF0123456789'
-rooms=[];members=[];items=[];tokens=[];files={};errors=[];combats={}
+rooms=[];members=[];items=[];tokens=[];files={};errors=[];combats={};characters=[];presence={}
 def reply(route,data,status=200):route.fulfill(status=status,content_type='application/json',body=json.dumps(data))
 def api(route):
  req=route.request;u=urlparse(req.url);path=u.path;method=req.method;token=req.headers.get('authorization','').replace('Bearer ','');user=token.replace('token-','');q=parse_qs(u.query)
@@ -26,8 +26,26 @@ def api(route):
   if not any(m['user_id']==user for m in members):members.append({'room_id':RID,'user_id':user,'display_name':body['member_name']})
   return reply(route,RID)
  if path=='/rest/v1/campaign_rooms':return reply(route,rooms if any(m['user_id']==user for m in members) else [])
- if path=='/rest/v1/campaign_members':return reply(route,members)
- if path=='/rest/v1/campaign_combats':return reply(route,[combats[RID]] if RID in combats else [])
+ if path=='/rest/v1/campaign_members':return reply(route,[m for m in members if m['room_id']==q['room_id'][0][3:]])
+ if path=='/rest/v1/campaign_characters':return reply(route,[r for r in characters if r['room_id']==q['room_id'][0][3:]])
+ if path=='/rest/v1/rpc/save_campaign_character':
+  r=next((r for r in characters if r['id']==body['character_id'] and r['room_id']==body['target_room']),None)
+  if r and r['owner_id']!=user and user!='gm':return reply(route,{},403)
+  if (r['revision'] if r else 0)!=body['expected_revision']:return reply(route,{'code':'40001','message':'Versão diferente'},409)
+  if not r:r={'id':body['character_id'],'room_id':body['target_room'],'owner_id':user,'revision':0};characters.append(r)
+  r.update({'data':body['payload'] if body['payload'] is not None else r['data'],'deleted':body['payload'] is None,'revision':r['revision']+1});return reply(route,r)
+ if path=='/rest/v1/rpc/react_campaign_characters':
+  a=next(r for r in characters if r['id']==body['source_id']);b=next(r for r in characters if r['id']==body['trigger_id'])
+  if b['owner_id']!=user and user!='gm':return reply(route,{},403)
+  if not a['data']['mark']:return reply(route,{'message':'Sem marca'},400)
+  for r in [a,b]:r['data']['ee']=min(3,r['data']['ee']+1);r['revision']+=1
+  a['data']['mark']=None;return reply(route,[a,b])
+ if path=='/rest/v1/rpc/campaign_heartbeat':presence[(body['target_room'],user,body['session_id'])]=time.monotonic();return reply(route,None)
+ if path=='/rest/v1/rpc/leave_campaign_session':presence.pop((body['target_room'],user,body['session_id']),None);return reply(route,None)
+ if path=='/rest/v1/campaign_presence':return reply(route,[{'user_id':u} for (r,u,session),last in presence.items() if r==q['room_id'][0][3:] and time.monotonic()-last<90])
+
+ if path=='/rest/v1/campaign_combats':
+  selected=q['room_id'][0][3:];return reply(route,[combats[selected]] if selected in combats else [])
  if path=='/rest/v1/rpc/save_campaign_combat':
   if user!='gm':return reply(route,{},403)
   old=combats.get(RID,{'revision':0})
@@ -79,9 +97,35 @@ with sync_playwright() as p:
  assert gm.locator('#room-open-tokens').is_visible();assert gm.locator('#room-token-help').inner_text().startswith('Primeiro prepare');assert gm.locator('#room-token-form').is_hidden()
  gm.locator('#room-show-code').click();gm.wait_for_function("document.querySelector('#room-invite-value').value.length === 32");assert gm.locator('#room-invite-value').input_value()==CODE
  item(gm,'scene','Cena secreta','Texto público sem segredo')
+ player.goto('https://ecos.test/');player.locator('#new-character').click();player.locator('#character-form [name=name]').fill('Ficha local');player.locator('[name=element]').select_option('Geo');player.get_by_role('button',name='Salvar personagem').click()
  login(player,'player@example.test');player.locator('#room-join-form [name=code]').fill('https://old--comfy-jalebi-598a6d.netlify.app/?room='+CODE);player.locator('#room-join-form [name=displayName]').fill('Aventureira');player.locator('#room-join-form button').click();player.locator('#room-panel').wait_for(state='visible')
  assert player.locator('.room-content-card').count()==0
  assert player.locator('#room-composer').is_hidden()
+ # Existing local sheets are explicitly copied and keep their original local copy.
+ player.locator('.campaign-sheets details summary').click();player.locator('#room-sheet-local').select_option(label='Ficha local');player.locator('#room-sheet-copy').click()
+ player.wait_for_function("document.querySelector('#room-sheets-status').textContent.includes('Todas as fichas salvas')")
+ assert len(characters)==1;assert characters[0]['owner_id']=='player'
+ assert player.evaluate("JSON.parse(localStorage.getItem('ecos-teyvat-v1')).characters[0].name")=='Ficha local'
+ gm.locator('[data-tab=mesa]').click();gm.locator('#new-character').click();gm.locator('#character-form [name=name]').fill('Mestre Pyro');gm.get_by_role('button',name='Salvar personagem').click()
+ gm.wait_for_function("document.querySelector('#campaign-save-status').textContent.includes('Todas as fichas salvas')")
+ player.locator('[data-tab=mesa]').click();player.wait_for_function("document.querySelectorAll('.character-card').length===2",timeout=12000)
+ assert player.locator('.character-card').filter(has_text='Mestre Pyro').locator('[data-action=edit]').is_disabled()
+ geo=player.locator('.character-card').filter(has_text='Ficha local');page_id=characters[0]['id']
+ player.evaluate('Math.random=()=>0.999');geo.locator('[data-vision-action=activate]').click();geo.locator('[data-action=damage]').click();player.locator('#damage-form [name=amount]').fill('8');player.locator('#damage-form button[type=submit]').click()
+ player.wait_for_function("document.querySelector('#campaign-save-status').textContent.includes('Todas as fichas salvas')")
+ assert next(r for r in characters if r['id']==page_id)['data']['hp']==31
+ gm.wait_for_function("document.querySelectorAll('.character-card').length===2",timeout=12000)
+ gm.locator('.character-card').filter(has_text='Mestre Pyro').locator('[data-action=mark]').select_option('Pyro');gm.wait_for_function("document.querySelector('#campaign-save-status').textContent.includes('Todas as fichas salvas')")
+ player.wait_for_function("[...document.querySelectorAll('#source option')].some(o=>o.textContent.includes('Mestre Pyro')&&o.textContent.includes('Pyro'))")
+ player.locator('#source').select_option(label='Mestre Pyro · Pyro');player.locator('#trigger').select_option(page_id);player.locator('#reaction').click();player.wait_for_function("document.querySelector('#reaction-result').textContent.includes('Cristalização')")
+ assert [r['data']['ee'] for r in characters]==[1,1]
+ # Fresh browser/account login recovers cloud HP and used benefit without local storage.
+ freshctx,fresh=context();login(fresh,'player@example.test');fresh.locator('[data-tab=mesa]').click();fresh.wait_for_function("document.querySelectorAll('.character-card').length===2")
+ recovered=fresh.locator('.character-card').filter(has_text='Ficha local');assert '31' in recovered.locator('.health-caption').inner_text();assert recovered.locator('[data-vision-action=activate]').is_disabled()
+ fresh.locator('[data-tab=sala]').click();fresh.locator('#cloud-logout').click();fresh.locator('#cloud-auth').wait_for(state='visible');freshctx.close()
+ gm.locator('[data-tab=sala]').click();player.locator('[data-tab=sala]').click();gm.locator('#room-refresh').click();player.locator('#room-refresh').click()
+ gm.wait_for_function("document.querySelectorAll('.presence-person.is-online').length===2")
+ assert 'Aventureira' in gm.locator('#room-presence').inner_text();assert 'Mestre' in player.locator('#room-presence').inner_text()
  gm.locator('[data-room-action=present]').first.click();player.wait_for_function("document.querySelector('#room-stage-title').textContent === 'Cena secreta'",timeout=12000)
  assert player.locator('[data-room-action=edit]').count()==0
  assert player.locator('.room-content-card').count()==1
@@ -134,6 +178,16 @@ with sync_playwright() as p:
  gm.locator('#combat-next').click();gm.wait_for_function("document.querySelector('#combat-round').textContent === 'rodada 2'")
  player.wait_for_function("document.querySelector('#combat-round').textContent === 'rodada 2'",timeout=12000)
  assert player.locator('#round').inner_text()=='2'
+ # Rejoining an ongoing combat must not refresh already-spent resources.
+ player.locator('[data-tab=mesa]').click();geo=player.locator('.character-card').filter(has_text='Ficha local')
+ player.evaluate('Math.random=()=>0.999');geo.locator('[data-vision-action=activate]').click();geo.locator('[data-action=damage]').click();player.locator('#damage-form [name=amount]').fill('8');player.locator('#damage-form button[type=submit]').click();geo.locator('[data-action=energy][data-value="2"]').click()
+ geo.locator('.artifact-panel summary').click();geo.locator('[data-artifact-action=sand]').click();player.locator('#resistance-form button[type=submit]').click();player.locator('#resistance-close').click()
+ player.wait_for_function("document.querySelector('#campaign-save-status').textContent.includes('Todas as fichas salvas')",timeout=12000)
+ resumedctx,resumed=context();login(resumed,'player@example.test');resumed.locator('[data-tab=mesa]').click();resumed.wait_for_function("document.querySelectorAll('.character-card').length===2")
+ resumed.wait_for_function("document.querySelector('#round').textContent==='2'",timeout=12000)
+ rgeo=resumed.locator('.character-card').filter(has_text='Ficha local');assert '29' in rgeo.locator('.health-caption').inner_text();assert rgeo.locator('[data-vision-action=activate]').is_disabled();assert rgeo.locator('.energy .filled').count()==2
+ rgeo.locator('.artifact-panel summary').click();assert rgeo.locator('[data-artifact-action=sand]').is_disabled();resumed.locator('[data-tab=sala]').click();resumed.locator('#cloud-logout').click();resumed.locator('#cloud-auth').wait_for(state='visible');resumedctx.close()
+ player.locator('[data-tab=sala]').click()
  # NPC creation is another distinct published content kind.
  gm.locator('#room-item-kind').select_option('npc');gm.locator('#room-item-title').fill('Mira');gm.locator('#room-item-text').fill('Contratante da Guilda');gm.locator('#room-item-form button[value=present]').click()
  gm.wait_for_function("document.querySelectorAll('.room-content-card').length === 3")
@@ -142,6 +196,16 @@ with sync_playwright() as p:
  player.set_viewport_size({'width':390,'height':844});assert player.evaluate('document.documentElement.scrollWidth <= innerWidth')
  gm.locator('#room-player-view').check();assert gm.locator('#room-composer').is_hidden();assert gm.locator('.room-content-card').count()==2
  gm.locator('#room-player-view').uncheck();gm.set_viewport_size({'width':390,'height':844});gm.locator('#combat-prepare').click();assert gm.evaluate('document.documentElement.scrollWidth <= innerWidth');gm.locator('#combat-cancel').click()
+ # Selecting another campaign shows its own sheets, then returning restores the first.
+ second='22222222-2222-2222-2222-222222222222';rooms.append({'id':second,'name':'Outra campanha','gm_id':'gm'});members.append({'room_id':second,'user_id':'player','display_name':'Aventureira'})
+ player.reload();player.locator('[data-tab=sala]').click();player.locator('#room-select').select_option(second);player.wait_for_function("document.querySelector('#campaign-mode').textContent.includes('Outra campanha')");player.wait_for_function("document.querySelectorAll('.character-card').length===0")
+ player.locator('[data-tab=mesa]').click();player.locator('#new-character').click();player.locator('#character-form [name=name]').fill('Temporária');player.get_by_role('button',name='Salvar personagem').click();player.wait_for_function("document.querySelector('#campaign-save-status').textContent.includes('Todas as fichas salvas')")
+ player.locator('.character-card [data-action=edit]').click();player.once('dialog',lambda d:d.accept());player.locator('#delete-character').click();player.wait_for_function("document.querySelector('#campaign-save-status').textContent.includes('Todas as fichas salvas')");assert player.locator('.character-card').count()==0
+ player.locator('[data-tab=sala]').click()
+ player.locator('#room-select').select_option(RID);player.wait_for_function("document.querySelectorAll('.character-card').length===2")
  player.locator('[data-tab=mesa]').click();assert player.locator('#roll-nick').input_value()=='Aventureira';assert player.locator('#roll-nick').get_attribute('readonly') is not None;player.locator('#roll-mode').select_option('advantage');player.locator('#roll').click();assert 'Aventureira • Vantagem · 2d20' in player.locator('#roll-detail').inner_text();player.locator('[data-tab=sala]').click();player.locator('#cloud-logout').click();player.locator('#cloud-auth').wait_for(state='visible');assert player.locator('#room-panel').is_hidden();assert player.locator('.room-content-card').count()==0
+ # Existing deployments without migration 004 keep their local sheets and show activation instructions.
+ pendingctx,pending=context();pendingctx.route('https://db.test/rest/v1/campaign_characters*',lambda r:reply(r,{'code':'PGRST205','message':'Tabela ausente'},404))
+ login(pending,'player@example.test');pending.locator('#room-select').select_option(RID);pending.locator('#room-sheets-setup').wait_for(state='visible');assert '004' in pending.locator('#room-sheets-status').inner_text();pending.locator('[data-tab=mesa]').click();assert pending.locator('#new-character').is_disabled();pendingctx.close()
  assert not errors,errors
- b.close();print('PASS: two independent accounts; create/join room; hidden/revealed scene; map upload and zoom; NPC reveal; projection; session reload; logout clears shared content; mobile layout. tokens, assigned-player movement by keyboard and drag, search and save-and-present. API simulated; shared initiative and round synchronization; SQL permissions tested separately.')
+ b.close();print('PASS: two independent accounts; create/join room; hidden/revealed scene; map upload and zoom; NPC reveal; projection; session reload; logout clears shared content; mobile layout. tokens, assigned-player movement by keyboard and drag, search and save-and-present. API simulated; shared initiative and round synchronization; SQL permissions tested separately. Campaign sheets recover in a fresh browser, owner permissions, atomic reaction, HP and Vision persistence, local migration, online roster.')

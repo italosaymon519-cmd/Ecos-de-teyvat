@@ -12,3 +12,5 @@ console.log('Site estático preparado em dist/.');
 await writeFile(join(root,'dist','src','cloud-config.js'),'export const cloudConfig = '+JSON.stringify(config)+';\n');
 
 await cp(join(root,'assets'),join(root,'dist','assets'),{recursive:true});
+
+await cp(join(root,'supabase'),join(root,'dist','supabase'),{recursive:true});

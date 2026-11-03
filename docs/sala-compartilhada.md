@@ -66,7 +66,7 @@ Não há WebSocket nesta versão: a sincronização usa consultas periódicas e 
 
 ## O que continua local
 
-Fichas, rolagens, combates e diário originais continuam no navegador. As notas do painel local do mestre também: não são automaticamente copiadas para o banco. Ao usar um registro local como base, somente seu nome é copiado; o mestre redige a descrição pública.
+As fichas da mesa local, rolagens e diário continuam no navegador. As fichas da sala e sua iniciativa são salvas no banco após as atualizações 003 e 004. As notas do painel local do mestre também: não são automaticamente copiadas para o banco. Ao usar um registro local como base, somente seu nome é copiado; o mestre redige a descrição pública.
 
 O backup JSON existente não inclui o acervo do Supabase. O mapa local em IndexedDB também continua separado. Para compartilhar o mapa é preciso enviá-lo no formulário da sala; ter a imagem no mapa local não faz upload automático.
 
@@ -77,7 +77,7 @@ O backup JSON existente não inclui o acervo do Supabase. O mapa local em Indexe
 - Os links de imagem são assinados e expiram em 60 segundos; o bucket não é público.
 - Conteúdo novo começa oculto. A opção Visualizar como jogador é uma prévia do mestre; não é o mecanismo de segurança. A segurança é aplicada no banco e no Storage.
 - A sessão é mantida em sessionStorage da aba. Logout limpa imediatamente a sessão e a tela compartilhada. Se o pedido de revogação remota falhar, a interface informa o erro.
-- Ainda não há expulsão de membros, rotação de convite, transferência de mestre, edição compartilhada de fichas ou backup/exportação de acervo. Compartilhe convites apenas com seu grupo.
+- Ainda não há expulsão de membros, rotação de convite, transferência de mestre ou backup/exportação de acervo. Compartilhe convites apenas com seu grupo.
 
 ## Desenvolvimento e validação
 
@@ -114,7 +114,7 @@ Também foram adicionados busca por nome/descrição, filtros de visibilidade, m
 
 Execute [`supabase/003-combat-initiative.sql`](../supabase/003-combat-initiative.sql) em uma nova consulta no SQL Editor. Essa atualização é independente da migração de tokens e pode ser repetida sem apagar combates. Não execute o setup inicial novamente.
 
-Na Sala compartilhada, clique em **Combate** ou localize **Ordem de iniciativa** junto ao mapa. O mestre escolhe **Preparar combate**, importa os tokens do mapa apresentado ou as fichas deste navegador e pode adicionar participantes manualmente. Os tokens não armazenam atributos: o bônus de Agilidade deve ser informado. A importação de fichas locais usa a Agilidade registrada.
+Na Sala compartilhada, clique em **Combate** ou localize **Ordem de iniciativa** junto ao mapa. O mestre escolhe **Preparar combate**, importa os tokens do mapa apresentado ou as fichas da mesa selecionada e pode adicionar participantes manualmente. Os tokens não armazenam atributos: o bônus de Agilidade deve ser informado. A importação de fichas usa a Agilidade registrada.
 
 O botão **Rolar iniciativas** aplica 1d20 + bônus a cada participante. Alternativamente, digite o resultado total. Ao iniciar, o maior total age primeiro. Empates preservam a sequência de preparação, uma convenção explícita desta versão que a mesa pode ajustar alterando os totais.
 
@@ -125,3 +125,16 @@ A rodada compartilhada passa a controlar a Mesa de aventura neste navegador: in�
 Fora de uma sala, **Novo combate** prepara a ordem no Painel do mestre com fichas locais e participantes já cadastrados. Os totais podem ser ajustados, e a rodada do encontro local atualiza a Mesa de aventura. Esses registros não são enviados à sala automaticamente.
 
 A persistência do combate usa `campaign_combats`, com leitura restrita a membros e escrita através de função autenticada do mestre. Não há dados privados do painel do mestre nessa tabela. O teste de políticas verifica permissões, conflitos de versão e rejeição de turnos inválidos em PostgreSQL/PGlite; o teste de navegador exercita dois clientes com API simulada.
+
+
+## Fichas persistentes e quem está online (atualização 004)
+
+No mesmo SQL Editor, abra uma consulta nova, cole o conteúdo completo de [004-campaign-sheets-presence.sql](../supabase/004-campaign-sheets-presence.sql) e clique em **Run**. Não apague tabelas nem execute novamente o setup inicial. A atualização 004 pode ser executada de novo sem apagar fichas, salas, mapas ou tokens. Depois, atualize o site com Ctrl + F5 e entre na sala.
+
+Use **Abrir fichas da campanha** para consultar, criar ou editar. As alterações são salvas automaticamente; aguarde **Todas as fichas salvas na campanha** antes de fechar. Em outro computador, entre com a mesma conta e escolha a mesma sala. Para trazer uma ficha antiga, abra **Trazer uma ficha que já existe neste navegador**, selecione-a e use **Copiar ficha local para esta campanha**. Cada jogador deve fazer isso com sua própria conta. A original permanece local.
+
+As fichas são visíveis aos membros da campanha; somente o dono e o mestre podem alterá-las. PV, EE, recursos, perícias, talentos e usos dos artefatos/Visão ficam persistidos. As fichas de outras campanhas não aparecem na mesa atual. Diários, notas e histórico de rolagem permanecem no navegador. Os tokens continuam sendo posicionados e atribuídos separadamente.
+
+A lista de participantes indica **Online** ou **Offline**. Outra aba ou dispositivo da mesma pessoa não duplica o participante. O logout remove a sessão correspondente; ao fechar sem sair ou perder internet, a presença expira em até 90 segundos. Se o servidor não responder, o site informa que a presença está indisponível.
+
+Uma edição sem conexão fica como rascunho neste navegador e tenta novamente ao reconectar. Quando duas sessões alteram o mesmo campo, o site preserva o rascunho e permite escolher entre a versão da mesa e a própria versão, além de baixar o rascunho. Não limpe o armazenamento enquanto houver alterações pendentes.

@@ -10,7 +10,7 @@ npm start
 npm test
 ```
 
-Servidor na porta 3000, configurável por `PORT`. O progresso fica no localStorage do navegador. Exporte regularmente uma cópia JSON; a importação substitui a campanha local após confirmação. As fichas e o diário originais são locais. Contas e sala compartilhada ficam disponíveis após conectar o Supabase, conforme as instruções abaixo.
+Servidor na porta 3000, configurável por `PORT`. O progresso fica no localStorage do navegador. Exporte regularmente uma cópia JSON; a importação substitui a campanha local após confirmação. Fora de uma sala, fichas e diário são locais. Com a atualização 004, selecionar uma sala carrega as fichas vinculadas à conta e à campanha, conforme as instruções abaixo.
 
 Regras: máximo 3 EE; E gera 1 EE se funcionar e volta após um turno de intervalo; Q exige 3 EE e respeita limites por descanso. Reações dão 1 EE a cada um dos dois participantes e consomem a marca. Avançar rodada remove marcas. Cada ficha registra uma marca preparada em um inimigo narrativo: não é um gerenciador individual de inimigos. O elemento usado pelo segundo participante é o da sua Visão; efeitos espalhados e autorreações ficam para a mesa.
 
@@ -38,13 +38,13 @@ O mapa compartilhado permite tokens de personagens, aliados e inimigos, arraste,
 
 ### Iniciativa compartilhada
 
-A opção Combate da sala mostra a ordem de jogadores e inimigos, turno atual e rodada. O mestre pode importar tokens ou fichas locais, rolar/ajustar iniciativas e avançar a fila. Aplique [003-combat-initiative.sql](supabase/003-combat-initiative.sql) para persistir o controle compartilhado; o encontro local permanece disponível.
+A opção Combate da sala mostra a ordem de jogadores e inimigos, turno atual e rodada. O mestre pode importar tokens ou fichas da mesa selecionada, rolar/ajustar iniciativas e avançar a fila. Aplique [003-combat-initiative.sql](supabase/003-combat-initiative.sql) para persistir o controle compartilhado; o encontro local permanece disponível.
 
 ### Limites de criação e reações
 
 A ficha permite no máximo duas perícias treinadas e dois talentos, conforme a criação dos guias. A interface bloqueia uma terceira opção e valida novamente ao salvar e importar. Fichas locais antigas com excesso continuam preservadas, mas precisam ser corrigidas antes de salvar. Não foi inventada progressão adicional de escolhas, pois os guias ainda não a definem.
 
-A reação mostra preparação e resultado no próprio painel. Prepare a marca do primeiro personagem e selecione o segundo. A reação consome a marca e dá 1 EE a cada participante, até 3; dano, escudos e condições continuam manuais. O fluxo usa as fichas locais deste navegador e explica quando faltam dois participantes. As combinações de Anemo/Geo com elementos compatíveis aceitam ambas as ordens descritas na tabela.
+A reação mostra preparação e resultado no próprio painel. Prepare a marca do primeiro personagem e selecione o segundo. A reação consome a marca e dá 1 EE a cada participante, até 3; dano, escudos e condições continuam manuais. O fluxo usa as fichas da mesa selecionada e explica quando faltam dois participantes. Na sala, a reação é gravada atomicamente no banco; o jogador deve controlar o segundo participante. As combinações de Anemo/Geo com elementos compatíveis aceitam ambas as ordens descritas na tabela.
 
 A marca preparada agora corresponde obrigatoriamente à Visão cadastrada. Os seletores mostram somente esse elemento, a reação valida a correspondência e marcas antigas incompatíveis são limpas ao carregar/importar ou trocar a Visão. As reações possíveis continuam sendo determinadas pela combinação dos elementos dos dois participantes.
 
@@ -60,7 +60,7 @@ A Mesa e a ficha exibem o benefício da Visão com um uso por combate. Geo rola 
 
 Ao registrar dano, informe se veio de ataque e se o inimigo está afetado por Cryo. A redução aplicável é calculada antes da absorção do escudo, e só o restante reduz PV. O limite de uso não volta com descanso nem com a próxima rodada: apenas no início de um novo combate. Trocar de Visão remove efeitos incompatíveis e preserva o uso já gasto.
 
-Anemo registra o reposicionamento reativo de 3 m, sem ataques de oportunidade; a posição do token continua sendo ajustada manualmente porque o mapa não possui escala em metros. Use Concluir deslocamento para resolver o aviso. Gatilhos narrativos (ter resistido, ter sido atacado, ter acertado Electro) são confirmados pelo jogador/mestre, não inferidos de uma rolagem sem CD. Essas alterações continuam nas fichas locais; não enviam PV ou efeitos ao banco da sala.
+Anemo registra o reposicionamento reativo de 3 m, sem ataques de oportunidade; a posição do token continua sendo ajustada manualmente porque o mapa não possui escala em metros. Use Concluir deslocamento para resolver o aviso. Gatilhos narrativos (ter resistido, ter sido atacado, ter acertado Electro) são confirmados pelo jogador/mestre, não inferidos de uma rolagem sem CD. Na mesa local, essas alterações ficam no navegador. Na campanha conectada, PV e efeitos são salvos com a ficha.
 
 ### Artefatos básicos
 
@@ -68,4 +68,17 @@ Abra **Artefatos · 5 peças equipadas** no cartão da Mesa ou na ficha. As cinc
 
 **Rolar dano** permite informar dados, modificador, acerto e crítico. O crítico duplica apenas os dados; o bônus fixo do artefato entra uma vez. Um erro preserva o uso. Ataque comum de catalisador usa Pluma; habilidades elementais usam Cálice. O cálculo registra dano, sem descontar automaticamente PV de um alvo. Ajuste dados e modificador conforme a habilidade usada.
 
-Areias e Tiara devem ser selecionadas antes de rolar, no teste de resistência ou no painel de perícias. A Tiara preparada aguarda um teste de Intelecto/Espírito. Os usos persistem ao recarregar e editar a ficha; apenas novo combate restaura os usos por combate. A iniciativa compartilhada/local identifica cada turno para Pluma/Cálice; sem iniciativa, Avançar rodada renova esses bônus. A Flor não é somada novamente ao editar/importar: o campo de PV máximos contém o valor final. As fichas e seus usos continuam locais ao navegador. Não é necessária nova migração SQL.
+Areias e Tiara devem ser selecionadas antes de rolar, no teste de resistência ou no painel de perícias. A Tiara preparada aguarda um teste de Intelecto/Espírito. Os usos persistem ao recarregar e editar a ficha; apenas novo combate restaura os usos por combate. A iniciativa compartilhada/local identifica cada turno para Pluma/Cálice; sem iniciativa, Avançar rodada renova esses bônus. A Flor não é somada novamente ao editar/importar: o campo de PV máximos contém o valor final. Na mesa local, fichas e usos ficam no navegador; na sala conectada com a atualização 004, ficam vinculados à conta e à campanha.
+
+
+### Fichas por campanha e participantes online
+
+Execute [004-campaign-sheets-presence.sql](supabase/004-campaign-sheets-presence.sql) no SQL Editor do mesmo projeto Supabase. A migração pode ser repetida, preserva os dados e não exige novas variáveis no Netlify. O arquivo também pode ser baixado na própria sala pelo aviso de ativação.
+
+Ao selecionar uma sala, a Mesa e Personagens passam a mostrar suas fichas. Criar/editar salva automaticamente o conteúdo completo, incluindo PV, EE, habilidades, proficiências, Visão e artefatos. O dono e o mestre editam; os demais membros consultam. A mesma conta pode recuperar as fichas em outro navegador ou dispositivo. A sala deve continuar existindo e ser selecionada novamente. Para as fichas antigas, use **Trazer uma ficha que já existe neste navegador → Copiar ficha local para esta campanha**. A cópia pertence à conta que a trouxe; a original permanece na mesa local. Selecione a opção vazia de Suas salas para voltar à mesa local.
+
+O status só confirma salvamento após resposta do servidor. Falhas mantêm rascunhos separados por conta/sala, com nova tentativa automática. Alterações em campos diferentes são combinadas; versões conflitantes do mesmo campo oferecem usar a versão da mesa, salvar o próprio rascunho ou baixá-lo. O diário, notas e histórico de rolagem continuam locais e separados por sala; os tokens permanecem independentes das fichas. Reentrar num combate em andamento preserva os usos já gastos; cada dono atualiza sua ficha ao receber um novo combate/rodada.
+
+A lista de participantes mostra nomes, mestre e estado Online/Offline para todos os membros. O servidor registra presença por sessão a cada 20 segundos, a lista atualiza a cada 10 segundos e várias abas contam como uma pessoa. Sair remove apenas a sessão correspondente; fechar o navegador ou perder a conexão pode levar até 90 segundos para aparecer offline. Uma falha de conexão mostra presença indisponível. As políticas do banco impedem consultar outras salas, editar fichas alheias sem ser mestre, alterar a autoria e forjar presença de outro usuário.
+
+Validação: testes PostgreSQL/PGlite de permissões, versões, limites, reações e expiração da presença; testes de fila offline e conflitos; navegação com duas contas e um navegador novo para recuperar a ficha, preservar recursos em combate e alternar campanhas. A integração no projeto Supabase real depende de aplicar a atualização 004.
