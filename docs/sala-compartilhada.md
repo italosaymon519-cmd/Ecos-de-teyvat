@@ -144,7 +144,7 @@ Uma edição sem conexão fica como rascunho neste navegador e tenta novamente a
 
 1. Copie todo o [SQL 005](../supabase/005-shared-rolls-token-sheets.sql) para uma consulta nova no SQL Editor e clique em Run. Execute após as atualizações 002 e 004, preservando as tabelas existentes.
 2. Atualize o site com Ctrl + F5, entre na conta e escolha a campanha. Role pela Mesa ou pela ficha: o histórico da sala mostra o nick, o personagem, o resultado e o cálculo. A Mesa também mostra as três últimas rolagens. Aguarde o envio antes de fechar; os resultados pendentes podem ser reenviados sem duplicação.
-3. Como mestre, selecione uma **Ficha vinculada** ao colocar um token, ou use **Vincular ficha** na lista de tokens existentes. Os PV, nome e condições acompanham as alterações da ficha. Cada jogador pode editar suas condições no campo **Condições atuais** da ficha.
+3. Como mestre, selecione uma **Ficha vinculada** ao colocar um token, ou use **Vincular ficha** na lista de tokens existentes. Os PV, nome e condições acompanham as alterações da ficha. Cada jogador pode editar suas condições no campo **Anotações de condições (sem duração)** da ficha.
 4. Para trocar ou remover a ligação, use **Trocar ficha**. O controle de um token Personagem acompanha o dono da ficha; inimigos e aliados são controlados pelo mestre. Desvincular devolve o controle ao mestre.
 
 As condições são anotações manuais, sem aplicação automática de efeitos ou contagem de rodadas. As rolagens são calculadas pelo navegador e registradas com autoria confirmada pela conta; o histórico não valida a aleatoriedade de um cliente modificado. A janela mostra até 100 resultados recentes, com 50 ao entrar; os registros anteriores continuam no banco.
@@ -164,3 +164,13 @@ Antes de calibrar, a interface não presume distâncias reais. A régua usa linh
 Execute o [SQL 007](../supabase/007-hex-grid.sql) em uma consulta nova após o 006. Atualize o site com Ctrl + F5. Como mestre, abra **Grade e escala deste mapa**, escolha **Tipo de grade → Hexagonal**, marque **Mostrar grade para todos** e salve.
 
 Os hexágonos têm ponta para cima. A distância configurada é entre centros vizinhos; a régua continua medindo linha reta. A escolha vale para esse mapa e fica salva para as próximas sessões. Para voltar, selecione **Quadrada** e salve.
+
+## Condições e efeitos com duração (008)
+
+1. Execute todo o [SQL 008](../supabase/008-combat-effects.sql) em uma consulta nova após as atualizações 003 e 004. Atualize o site com Ctrl + F5 e entre na campanha.
+2. No cartão ou ficha do personagem, clique em **Gerenciar efeitos**. Escolha tipo, nome, valor e duração. Para condições, basta nome e duração. Marque **Até remover** quando não houver duração.
+3. O mestre avança a iniciativa normalmente. A duração diminui quando a fila volta ao início da rodada, não a cada participante. Ao encerrar ou iniciar outro combate, os efeitos com duração terminam; os sem duração continuam. Fora de combate, um efeito com duração aguarda o próximo início.
+4. Escudos adicionais absorvem antes do Geo e são removidos ao esgotar. Bônus de Defesa, de perícias/resistências e de dano entram nos cálculos correspondentes. Críticos não duplicam bônus fixos.
+5. Os tokens vinculados mostram os efeitos da ficha. Para abrir pelo controle de iniciativa, importe fichas/tokens vinculados ou selecione **Ficha vinculada** na preparação dos participantes.
+
+O dono e o mestre editam; outros jogadores consultam. O banco controla a duração compartilhada, evitando contagem duplicada entre abas e preservando o estado para quem está offline. Durante uma troca de rodada, aguarde a sincronização antes de agir. Anotações antigas da ficha são identificadas como notas sem duração. Condições não aplicam automaticamente dano periódico nem testes de escape: esses resultados continuam sob controle da mesa.
