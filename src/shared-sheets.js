@@ -21,5 +21,5 @@ export function createSharedSheets({cloud,getContext}){
  setInterval(()=>{if(context&&!document.hidden){if(context.clockPending)refreshClock();else sync.refresh();}},4000);
  window.addEventListener('online',async()=>{if(!context)return;await checkEffects();if(context?.clockPending)await refreshClock();else await sync.refresh();});
  window.addEventListener('beforeunload',e=>{if(sync.pending.size){e.preventDefault();e.returnValue='';}});
- return {setRoom,setMembers,refresh:async()=>{await checkEffects();return context?.clockPending?refreshClock():sync.refresh();}};
+ return {setRoom,setMembers,prepareBackup:async()=>{await sync.flush();if(!sync.ready||sync.pending.size||sync.conflicts.size||context?.clockPending)throw Error('Aguarde salvar e resolver os rascunhos das fichas antes de exportar.');},refresh:async()=>{await checkEffects();return context?.clockPending?refreshClock():sync.refresh();}};
 }
