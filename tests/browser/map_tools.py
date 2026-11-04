@@ -12,7 +12,7 @@ def map_api(route):
  except:body={}
  if path=='/rest/v1/campaign_map_settings':return reply(route,[settings[q['item_id'][0][3:]]] if q['item_id'][0][3:] in settings else [])
  if path=='/rest/v1/campaign_map_markers':return reply(route,[m for m in markers if m['item_id']==q['item_id'][0][3:]])
- if path=='/rest/v1/rpc/save_campaign_map_settings':
+ if path in ['/rest/v1/rpc/save_campaign_map_settings','/rest/v1/rpc/save_campaign_map_grid_settings']:
   if user!='gm':return reply(route,{},403)
   old=settings.get(body['map_id'],{'revision':0})
   if old['revision']!=body['expected_revision']:return reply(route,{'code':'40001','message':'Escala alterada; recarregue'},409)
@@ -66,9 +66,17 @@ with sync_playwright() as p:
  # A remote scale edit cannot silently overwrite a master's unsaved form.
  gm.locator('#map-settings-form [name=grid_columns]').fill('12');settings[MID]={**settings[MID],'grid_columns':15,'revision':settings[MID]['revision']+1};gm.locator('#map-tools-refresh').click();gm.wait_for_function("document.querySelector('#map-scale-label').textContent.includes('15 colunas')");assert gm.locator('#map-settings-form [name=grid_columns]').input_value()=='12'
  gm.locator('#map-settings-save').click();gm.wait_for_function("document.querySelector('#map-tools-status').textContent.includes('recarregue')");gm.locator('#map-settings-reload').click();gm.wait_for_function("document.querySelector('#map-settings-form [name=grid_columns]').value==='15'");gm.locator('#map-settings-form [name=grid_columns]').fill('10');gm.locator('#map-settings-save').click();gm.wait_for_function("document.querySelector('#map-scale-label').textContent.includes('10 colunas')")
+ # Switching grid shape preserves calibration and the already shared ruler.
+ gm.locator('#map-settings-form [name=grid_type]').select_option('hex');gm.locator('#map-settings-save').click();gm.wait_for_function("document.querySelector('#map-scale-label').textContent.includes('Hexagonal')");player.wait_for_function("document.querySelector('#map-scale-label').textContent.includes('Hexagonal')",timeout=12000)
+ assert math.isclose(float(gm.locator('#map-grid-layer pattern').get_attribute('height')),60*math.sqrt(3),rel_tol=1e-9)
+ gm.reload();gm.locator('[data-tab=sala]').click();gm.wait_for_function("document.querySelector('#map-scale-label').textContent.includes('Hexagonal')");assert gm.locator('#map-settings-form [name=grid_type]').input_value()=='hex';assert len(markers)==1
+ gm.locator('#map-settings-details summary').click();gm.locator('#map-settings-form [name=grid_type]').select_option('square');gm.locator('#map-settings-save').click();gm.wait_for_function("document.querySelector('#map-scale-label').textContent.startsWith('1 quadrado')")
  # Settings, rulers and markers belong to their map, not the entire room.
  items[0]['is_current']=False;items.append({'id':'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','room_id':RID,'kind':'map','title':'Outro mapa','public_text':'','visible':True,'is_current':True,'image_path':RID+'/other.png'})
  gm.locator('#room-refresh').click();gm.wait_for_function("document.querySelector('#room-stage-title').textContent==='Outro mapa'");assert gm.locator('#room-marker-layer .map-marker').count()==0;assert gm.locator('#map-grid-layer').get_attribute('hidden') is not None;assert 'ainda não configurada' in gm.locator('#map-scale-label').inner_text()
  items[-1]['is_current']=False;items[0]['is_current']=True;gm.locator('#room-refresh').click();gm.wait_for_function("document.querySelectorAll('#room-marker-layer .map-marker').length===1");assert '10 colunas' in gm.locator('#map-scale-label').inner_text()
+ # Before SQL 007 is installed, a rejected hex save never pretends the format changed.
+ gc.route('https://db.test/rest/v1/rpc/save_campaign_map_grid_settings',lambda r:reply(r,{'code':'PGRST202','message':'Function missing'},404))
+ gm.locator('#map-settings-details').evaluate('(n)=>n.open=true');gm.locator('#map-settings-form [name=grid_type]').select_option('hex');gm.locator('#map-settings-save').click();gm.wait_for_function("document.querySelector('#map-tools-status').textContent.includes('007')");assert gm.locator('#map-hex-setup').is_visible();assert settings[MID]['grid_type']=='square'
  assert not errors,errors
- b.close();print('PASS: shared square grid, calibrated diagonal distance at 100/200% zoom, private/shared rulers, player pins, ownership deletion, persistence, two-click input, mobile, stable polling DOM, retry idempotence, scale conflict protection and per-map isolation.')
+ b.close();print('PASS: shared square grid, calibrated diagonal distance at 100/200% zoom, private/shared rulers, player pins, ownership deletion, persistence, two-click input, mobile, stable polling DOM, retry idempotence, scale conflict protection, square/hex grid persistence and per-map isolation.')

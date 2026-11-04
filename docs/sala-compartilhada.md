@@ -158,3 +158,9 @@ As condições são anotações manuais, sem aplicação automática de efeitos 
 5. Volte a **Mover mapa/tokens** ou pressione Escape para arrastar tokens e navegar pelo mapa ampliado. **Limpar medida pessoal** remove somente sua régua temporária.
 
 Antes de calibrar, a interface não presume distâncias reais. A régua usa linha reta e diagonais euclidianas. As configurações são próprias de cada mapa e respeitam a visibilidade definida pelo mestre. Se um envio falhar, tente novamente antes de trocar de mapa ou recarregar: apenas os marcadores confirmados pelo servidor ficam salvos.
+
+## Escolher hexágonos (007)
+
+Execute o [SQL 007](../supabase/007-hex-grid.sql) em uma consulta nova após o 006. Atualize o site com Ctrl + F5. Como mestre, abra **Grade e escala deste mapa**, escolha **Tipo de grade → Hexagonal**, marque **Mostrar grade para todos** e salve.
+
+Os hexágonos têm ponta para cima. A distância configurada é entre centros vizinhos; a régua continua medindo linha reta. A escolha vale para esse mapa e fica salva para as próximas sessões. Para voltar, selecione **Quadrada** e salve.
