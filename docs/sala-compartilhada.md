@@ -148,3 +148,13 @@ Uma edição sem conexão fica como rascunho neste navegador e tenta novamente a
 4. Para trocar ou remover a ligação, use **Trocar ficha**. O controle de um token Personagem acompanha o dono da ficha; inimigos e aliados são controlados pelo mestre. Desvincular devolve o controle ao mestre.
 
 As condições são anotações manuais, sem aplicação automática de efeitos ou contagem de rodadas. As rolagens são calculadas pelo navegador e registradas com autoria confirmada pela conta; o histórico não valida a aleatoriedade de um cliente modificado. A janela mostra até 100 resultados recentes, com 50 ao entrar; os registros anteriores continuam no banco.
+
+## Grade, distância e marcadores (006)
+
+1. Cole todo o [SQL 006](../supabase/006-map-grid-measure-markers.sql) em uma consulta nova no SQL Editor e clique em Run. Aplique depois do setup e da atualização 002. Não apague tabelas existentes. Atualize o site com Ctrl + F5 e abra um mapa na Sala compartilhada.
+2. Como mestre, abra **Grade e escala deste mapa**. Defina quantas colunas cabem na largura da imagem e quanto vale cada quadrado. Escolha metros ou quilômetros e salve. A opção de mostrar grade é independente da escala: pode medir mesmo com a grade oculta.
+3. Clique em **Medir distância** e arraste da origem ao destino, ou toque/clique em dois pontos. A medida é pessoal. Para mostrar ao grupo, use **Compartilhar medida**; ela ficará salva entre os marcadores do mapa.
+4. Para marcar um lugar, escolha nome e cor, clique em **Colocar marcador** e depois no mapa. Os participantes que veem esse mapa verão o marcador. Em **Marcadores compartilhados**, use **Localizar** ou **Remover**. Cada jogador remove seus próprios marcadores; o mestre pode remover qualquer um.
+5. Volte a **Mover mapa/tokens** ou pressione Escape para arrastar tokens e navegar pelo mapa ampliado. **Limpar medida pessoal** remove somente sua régua temporária.
+
+Antes de calibrar, a interface não presume distâncias reais. A régua usa linha reta e diagonais euclidianas. As configurações são próprias de cada mapa e respeitam a visibilidade definida pelo mestre. Se um envio falhar, tente novamente antes de trocar de mapa ou recarregar: apenas os marcadores confirmados pelo servidor ficam salvos.
