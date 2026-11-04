@@ -42,6 +42,7 @@ export class CampaignCloud {
   async deleteItem(id){return this.request('/rest/v1/campaign_items?id=eq.'+encodeURIComponent(id),{method:'DELETE'});}
   async upload(roomId,file){const ext={'image/png':'png','image/jpeg':'jpg','image/webp':'webp'}[file.type];if(!ext||file.size>15728640)throw Error('Envie PNG, JPG ou WebP de até 15 MB.');const path=roomId+'/'+crypto.randomUUID()+'.'+ext;await this.request('/storage/v1/object/campaign-images/'+path,{method:'POST',body:file,headers:{'Content-Type':file.type,'x-upsert':'false'}});return path;}
   async removeImage(path){return this.request('/storage/v1/object/campaign-images',{method:'DELETE',body:{prefixes:[path]}});}
+  async rolls(roomId,after=null){return this.request('/rest/v1/campaign_rolls?room_id=eq.'+encodeURIComponent(roomId)+'&select=*&order=seq.'+(after===null?'desc&limit=50':'asc&seq=gt.'+encodeURIComponent(after)+'&limit=100'));}
   async combat(roomId){const rows=await this.request('/rest/v1/campaign_combats?room_id=eq.'+encodeURIComponent(roomId)+'&select=*');return rows?.[0]||null;}
   async tokens(itemId){return this.request('/rest/v1/campaign_tokens?item_id=eq.'+encodeURIComponent(itemId)+'&select=*&order=id.asc');}
   async createToken(token){return this.request('/rest/v1/campaign_tokens',{method:'POST',body:token,headers:{Prefer:'return=representation'}});}

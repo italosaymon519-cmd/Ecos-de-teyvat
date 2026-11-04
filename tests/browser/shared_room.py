@@ -8,7 +8,7 @@ import json,base64,time
 from playwright.sync_api import sync_playwright
 ROOT=Path(__file__).resolve().parents[2]/'dist'
 RID='11111111-1111-1111-1111-111111111111';CODE='ABCDEF0123456789ABCDEF0123456789'
-rooms=[];members=[];items=[];tokens=[];files={};errors=[];combats={};characters=[];presence={}
+rooms=[];members=[];items=[];tokens=[];files={};errors=[];combats={};characters=[];presence={};rolls=[]
 def reply(route,data,status=200):route.fulfill(status=status,content_type='application/json',body=json.dumps(data))
 def api(route):
  req=route.request;u=urlparse(req.url);path=u.path;method=req.method;token=req.headers.get('authorization','').replace('Bearer ','');user=token.replace('token-','');q=parse_qs(u.query)
@@ -27,6 +27,24 @@ def api(route):
   return reply(route,RID)
  if path=='/rest/v1/campaign_rooms':return reply(route,rooms if any(m['user_id']==user for m in members) else [])
  if path=='/rest/v1/campaign_members':return reply(route,[m for m in members if m['room_id']==q['room_id'][0][3:]])
+ if path=='/rest/v1/campaign_rolls':
+  rows=[r for r in rolls if r['room_id']==q['room_id'][0][3:]]
+  if 'seq' in q:rows=[r for r in rows if r['seq']>int(q['seq'][0][3:])]
+  rows=sorted(rows,key=lambda r:r['seq'],reverse=q.get('order',[''])[0].endswith('desc'));return reply(route,rows[:int(q.get('limit',['100'])[0])])
+ if path=='/rest/v1/rpc/record_campaign_roll':
+  old=next((r for r in rolls if r['room_id']==body['target_room'] and r['id']==body['roll_id']),None)
+  if old:return reply(route,old)
+  sheet=next((r for r in characters if r['id']==body['payload'].get('character_id') and r['room_id']==body['target_room']),None)
+  if sheet and sheet['owner_id']!=user and user!='gm':return reply(route,{},403)
+  member=next(m for m in members if m['room_id']==body['target_room'] and m['user_id']==user)
+  row={'id':body['roll_id'],'seq':len(rolls)+1,'room_id':body['target_room'],'actor_id':user,'actor_name':member['display_name'],'character_name':sheet['data']['name'] if sheet else None,'created_at':'2026-11-04T12:00:00Z',**body['payload']};rolls.append(row);return reply(route,row)
+ if path=='/rest/v1/rpc/link_campaign_token':
+  if user!='gm':return reply(route,{},403)
+  token=next(t for t in tokens if t['id']==body['token_id']);token['character_id']=body['sheet_id']
+  sheet=next((r for r in characters if r['id']==body['sheet_id']),None)
+  token['owner_id']=sheet['owner_id'] if sheet and token['kind']=='character' else None
+  if sheet:token['name']=sheet['data']['name']
+  return reply(route,token)
  if path=='/rest/v1/campaign_characters':return reply(route,[r for r in characters if r['room_id']==q['room_id'][0][3:]])
  if path=='/rest/v1/rpc/save_campaign_character':
   r=next((r for r in characters if r['id']==body['character_id'] and r['room_id']==body['target_room']),None)
@@ -188,6 +206,25 @@ with sync_playwright() as p:
  rgeo=resumed.locator('.character-card').filter(has_text='Ficha local');assert '29' in rgeo.locator('.health-caption').inner_text();assert rgeo.locator('[data-vision-action=activate]').is_disabled();assert rgeo.locator('.energy .filled').count()==2
  rgeo.locator('.artifact-panel summary').click();assert rgeo.locator('[data-artifact-action=sand]').is_disabled();resumed.locator('[data-tab=sala]').click();resumed.locator('#cloud-logout').click();resumed.locator('#cloud-auth').wait_for(state='visible');resumedctx.close()
  player.locator('[data-tab=sala]').click()
+ # Link an existing token and propagate sheet name, HP and conditions to both browsers.
+ gm.locator('[data-link-token=t1]').click();gm.locator('#token-link-sheet').select_option(page_id);gm.locator('#token-link-form [type=submit]').click();gm.locator('#token-link-dialog').wait_for(state='hidden')
+ player.wait_for_function("document.querySelector('[data-token-id=t1] .token-sheet-health')?.textContent==='29/33 PV'",timeout=12000)
+ player.evaluate("window.linkedNode=document.querySelector('[data-token-id=t1]')")
+ player.locator('[data-tab=mesa]').click();geo=player.locator('.character-card').filter(has_text='Ficha local');geo.locator('[data-action=edit]').click();player.locator('#character-form [name=conditions]').fill('Congelado');player.locator('#character-form [name=name]').fill('Geo da campanha');player.get_by_role('button',name='Salvar personagem').click()
+ geo=player.locator('.character-card').filter(has_text='Geo da campanha');geo.locator('[data-action=damage]').click();player.locator('#damage-form [name=amount]').fill('3');player.locator('#damage-form button[type=submit]').click()
+ gm.wait_for_function("document.querySelector('[data-token-id=t1] .token-sheet-health')?.textContent==='26/33 PV'",timeout=12000)
+ assert 'Congelado' in gm.locator('[data-token-id=t1]').inner_text();assert 'Geo da campanha' in gm.locator('[data-token-id=t1]').inner_text()
+ # Every supported rolling flow publishes the result under the authenticated member's nick.
+ player.locator('[data-die="12"]').click();player.locator('#modifier').fill('3');player.evaluate("Math.random=()=>0.45;document.querySelector('#roll').click()")
+ geo.locator('[data-action=skills]').click();player.evaluate("Math.random=()=>0.45;document.querySelector('[data-skill-roll=Conhecimento][data-id=\""+page_id+"\"]').click()")
+ player.locator('[data-tab=mesa]').click();geo.locator('[data-vision-action=resistance]').click();player.evaluate("Math.random=()=>0.45;document.querySelector('#resistance-form button[type=submit]').click()");player.locator('#resistance-close').click()
+ geo.locator('.artifact-panel').evaluate('(node)=>node.open=true');geo.locator('[data-artifact-action=plume]').click();player.evaluate("Math.random=()=>0.45;document.querySelector('#outgoing-form button[type=submit]').click()");player.locator('#outgoing-close').click()
+ gm.wait_for_function("document.querySelectorAll('#room-rolls-list .shared-roll-entry').length>=5",timeout=12000)
+ assert {'dice','skill','resistance','damage','vision'}<=set(r['kind'] for r in rolls)
+ assert all(r['actor_name']=='Aventureira' for r in rolls if r['actor_id']=='player')
+ assert 'Aventureira' in gm.locator('#room-rolls-list').inner_text()
+ player.locator('[data-tab=sala]').click();player.locator('#room-refresh').click();assert player.evaluate('linkedNode.isConnected');player.wait_for_function("!document.querySelector('#room-refresh').disabled")
+ player.locator('[data-token-id=t1]').focus();player.locator('[data-token-id=t1]').press('Enter');assert player.locator('#personagens').is_visible();player.locator('[data-tab=sala]').click()
  # NPC creation is another distinct published content kind.
  gm.locator('#room-item-kind').select_option('npc');gm.locator('#room-item-title').fill('Mira');gm.locator('#room-item-text').fill('Contratante da Guilda');gm.locator('#room-item-form button[value=present]').click()
  gm.wait_for_function("document.querySelectorAll('.room-content-card').length === 3")
@@ -198,7 +235,7 @@ with sync_playwright() as p:
  gm.locator('#room-player-view').uncheck();gm.set_viewport_size({'width':390,'height':844});gm.locator('#combat-prepare').click();assert gm.evaluate('document.documentElement.scrollWidth <= innerWidth');gm.locator('#combat-cancel').click()
  # Selecting another campaign shows its own sheets, then returning restores the first.
  second='22222222-2222-2222-2222-222222222222';rooms.append({'id':second,'name':'Outra campanha','gm_id':'gm'});members.append({'room_id':second,'user_id':'player','display_name':'Aventureira'})
- player.reload();player.locator('[data-tab=sala]').click();player.locator('#room-select').select_option(second);player.wait_for_function("document.querySelector('#campaign-mode').textContent.includes('Outra campanha')");player.wait_for_function("document.querySelectorAll('.character-card').length===0")
+ player.reload();player.locator('[data-tab=sala]').click();player.locator('#room-select').select_option(second);player.wait_for_function("document.querySelector('#campaign-mode').textContent.includes('Outra campanha')");player.wait_for_function("document.querySelectorAll('.character-card').length===0");assert player.locator('#room-rolls-list .shared-roll-entry').count()==0
  player.locator('[data-tab=mesa]').click();player.locator('#new-character').click();player.locator('#character-form [name=name]').fill('Temporária');player.get_by_role('button',name='Salvar personagem').click();player.wait_for_function("document.querySelector('#campaign-save-status').textContent.includes('Todas as fichas salvas')")
  player.locator('.character-card [data-action=edit]').click();player.once('dialog',lambda d:d.accept());player.locator('#delete-character').click();player.wait_for_function("document.querySelector('#campaign-save-status').textContent.includes('Todas as fichas salvas')");assert player.locator('.character-card').count()==0
  player.locator('[data-tab=sala]').click()
@@ -208,4 +245,4 @@ with sync_playwright() as p:
  pendingctx,pending=context();pendingctx.route('https://db.test/rest/v1/campaign_characters*',lambda r:reply(r,{'code':'PGRST205','message':'Tabela ausente'},404))
  login(pending,'player@example.test');pending.locator('#room-select').select_option(RID);pending.locator('#room-sheets-setup').wait_for(state='visible');assert '004' in pending.locator('#room-sheets-status').inner_text();pending.locator('[data-tab=mesa]').click();assert pending.locator('#new-character').is_disabled();pendingctx.close()
  assert not errors,errors
- b.close();print('PASS: two independent accounts; create/join room; hidden/revealed scene; map upload and zoom; NPC reveal; projection; session reload; logout clears shared content; mobile layout. tokens, assigned-player movement by keyboard and drag, search and save-and-present. API simulated; shared initiative and round synchronization; SQL permissions tested separately. Campaign sheets recover in a fresh browser, owner permissions, atomic reaction, HP and Vision persistence, local migration, online roster.')
+ b.close();print('PASS: two independent accounts; create/join room; hidden/revealed scene; map upload and zoom; NPC reveal; projection; session reload; logout clears shared content; mobile layout. tokens, assigned-player movement by keyboard and drag, search and save-and-present. API simulated; shared initiative and round synchronization; SQL permissions tested separately. Campaign sheets recover in a fresh browser, owner permissions, atomic reaction, HP and Vision persistence, local migration, online roster, shared dice/skill/resistance/damage/Geo rolls and linked token HP/name/conditions.')

@@ -66,7 +66,7 @@ Não há WebSocket nesta versão: a sincronização usa consultas periódicas e 
 
 ## O que continua local
 
-As fichas da mesa local, rolagens e diário continuam no navegador. As fichas da sala e sua iniciativa são salvas no banco após as atualizações 003 e 004. As notas do painel local do mestre também: não são automaticamente copiadas para o banco. Ao usar um registro local como base, somente seu nome é copiado; o mestre redige a descrição pública.
+As fichas da mesa local, rolagens fora de sala e diário continuam no navegador. A atualização 005 compartilha as rolagens feitas na sala. As fichas da sala e sua iniciativa são salvas no banco após as atualizações 003 e 004. As notas do painel local do mestre também: não são automaticamente copiadas para o banco. Ao usar um registro local como base, somente seu nome é copiado; o mestre redige a descrição pública.
 
 O backup JSON existente não inclui o acervo do Supabase. O mapa local em IndexedDB também continua separado. Para compartilhar o mapa é preciso enviá-lo no formulário da sala; ter a imagem no mapa local não faz upload automático.
 
@@ -114,7 +114,7 @@ Também foram adicionados busca por nome/descrição, filtros de visibilidade, m
 
 Execute [`supabase/003-combat-initiative.sql`](../supabase/003-combat-initiative.sql) em uma nova consulta no SQL Editor. Essa atualização é independente da migração de tokens e pode ser repetida sem apagar combates. Não execute o setup inicial novamente.
 
-Na Sala compartilhada, clique em **Combate** ou localize **Ordem de iniciativa** junto ao mapa. O mestre escolhe **Preparar combate**, importa os tokens do mapa apresentado ou as fichas da mesa selecionada e pode adicionar participantes manualmente. Os tokens não armazenam atributos: o bônus de Agilidade deve ser informado. A importação de fichas usa a Agilidade registrada.
+Na Sala compartilhada, clique em **Combate** ou localize **Ordem de iniciativa** junto ao mapa. O mestre escolhe **Preparar combate**, importa os tokens do mapa apresentado ou as fichas da mesa selecionada e pode adicionar participantes manualmente. Os tokens sem ficha vinculada não fornecem atributos: informe seu bônus de Agilidade. Tokens vinculados usam o atributo da ficha com a atualização 005. A importação de fichas usa a Agilidade registrada.
 
 O botão **Rolar iniciativas** aplica 1d20 + bônus a cada participante. Alternativamente, digite o resultado total. Ao iniciar, o maior total age primeiro. Empates preservam a sequência de preparação, uma convenção explícita desta versão que a mesa pode ajustar alterando os totais.
 
@@ -138,3 +138,13 @@ As fichas são visíveis aos membros da campanha; somente o dono e o mestre pode
 A lista de participantes indica **Online** ou **Offline**. Outra aba ou dispositivo da mesma pessoa não duplica o participante. O logout remove a sessão correspondente; ao fechar sem sair ou perder internet, a presença expira em até 90 segundos. Se o servidor não responder, o site informa que a presença está indisponível.
 
 Uma edição sem conexão fica como rascunho neste navegador e tenta novamente ao reconectar. Quando duas sessões alteram o mesmo campo, o site preserva o rascunho e permite escolher entre a versão da mesa e a própria versão, além de baixar o rascunho. Não limpe o armazenamento enquanto houver alterações pendentes.
+
+
+## Rolagens para todos e fichas nos tokens (005)
+
+1. Copie todo o [SQL 005](../supabase/005-shared-rolls-token-sheets.sql) para uma consulta nova no SQL Editor e clique em Run. Execute após as atualizações 002 e 004, preservando as tabelas existentes.
+2. Atualize o site com Ctrl + F5, entre na conta e escolha a campanha. Role pela Mesa ou pela ficha: o histórico da sala mostra o nick, o personagem, o resultado e o cálculo. A Mesa também mostra as três últimas rolagens. Aguarde o envio antes de fechar; os resultados pendentes podem ser reenviados sem duplicação.
+3. Como mestre, selecione uma **Ficha vinculada** ao colocar um token, ou use **Vincular ficha** na lista de tokens existentes. Os PV, nome e condições acompanham as alterações da ficha. Cada jogador pode editar suas condições no campo **Condições atuais** da ficha.
+4. Para trocar ou remover a ligação, use **Trocar ficha**. O controle de um token Personagem acompanha o dono da ficha; inimigos e aliados são controlados pelo mestre. Desvincular devolve o controle ao mestre.
+
+As condições são anotações manuais, sem aplicação automática de efeitos ou contagem de rodadas. As rolagens são calculadas pelo navegador e registradas com autoria confirmada pela conta; o histórico não valida a aleatoriedade de um cliente modificado. A janela mostra até 100 resultados recentes, com 50 ao entrar; os registros anteriores continuam no banco.
