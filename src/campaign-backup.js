@@ -1,3 +1,4 @@
+import {validateFog} from './fog-geometry.js';
 export const BACKUP_FORMAT='ecos-campaign-backup',BACKUP_VERSION=1,MAX_BACKUP_BYTES=100*1024*1024,MAX_IMAGE_BYTES=64*1024*1024;
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const limits={items:500,characters:500,tokens:2000,settings:500,markers:5000,rolls:10000};
@@ -17,6 +18,7 @@ export function validateMetadata(data,validateCharacter=()=>{}){
  if(data.characters.filter(c=>!c.deleted).length>50)fail('O limite é de 50 fichas ativas por campanha.');
  for(const c of data.characters){if(typeof c.deleted!=='boolean'||c.data?.id!==c.id)fail('Ficha do backup inválida.');validateCharacter(c.data);}
  for(const t of data.tokens){map(t.item_id);if(t.character_id&&!ids.characters.has(t.character_id))fail('Token ligado a uma ficha ausente.');}
+ if(data.fog!==undefined){if(!Array.isArray(data.fog)||data.fog.length>500)fail('Névoa de backup inválida.');const seen=new Set();for(const f of data.fog){map(f.item_id);validateFog(f);if(seen.has(f.item_id))fail('Névoa duplicada.');seen.add(f.item_id);}}
  const settings=new Set();for(const s of data.settings){map(s.item_id);if(settings.has(s.item_id))fail('Configuração de mapa duplicada.');settings.add(s.item_id);}
  for(const m of data.markers)map(m.item_id);
  if(data.combat){if(!uuid.test(data.combat.combat_id)||!Array.isArray(data.combat.combatants)||data.combat.combatants.length>200)fail('Combate inválido.');const seen=new Set();for(const c of data.combat.combatants){if(!uuid.test(c.id)||seen.has(c.id)||c.character_id&&!ids.characters.has(c.character_id))fail('Participante de combate inválido.');seen.add(c.id);}if(data.combat.active_id&&!seen.has(data.combat.active_id))fail('Turno ativo inválido.');}
@@ -36,6 +38,7 @@ export function restorePayload(backup,roomId,newId=()=>crypto.randomUUID()){
  for(const c of data.characters){c.id=chars.get(c.id);c.data.id=c.id;delete c.owner_id;delete c.room_id;}
  for(const i of data.items){i.id=items.get(i.id);i.image_path=i.image_path?images.get(i.image_path):null;delete i.room_id;}
  for(const t of data.tokens){t.id=tokens.get(t.id);t.item_id=items.get(t.item_id);t.character_id=t.character_id&&!deleted.has(t.character_id)?chars.get(t.character_id):null;delete t.owner_id;delete t.room_id;}
+ for(const f of data.fog||[]){f.item_id=items.get(f.item_id);delete f.room_id;}
  for(const s of data.settings){s.item_id=items.get(s.item_id);delete s.room_id;}
  for(const m of data.markers){m.id=newId();m.item_id=items.get(m.item_id);delete m.room_id;delete m.created_by;}
  for(const r of data.rolls){r.id=newId();r.character_id=chars.get(r.character_id)||null;delete r.room_id;delete r.actor_id;}

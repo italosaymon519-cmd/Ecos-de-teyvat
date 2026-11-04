@@ -11,12 +11,14 @@ items.append({'id':MID,'room_id':RID,'kind':'map','title':'Mapa secreto','public
 characters.append({'id':CID,'room_id':RID,'owner_id':'player','revision':1,'deleted':False,'data':{'id':CID,'name':'Amber','element':'Pyro','attrs':[3,2,2,1,1],'hp':17,'maxHp':33,'ee':2,'eReady':0,'qLong':0,'qShort':False,'mark':None,'skills':'Atletismo','talents':'','weapon':'Espada','level':1}})
 tokens.append({'id':TID,'room_id':RID,'item_id':MID,'name':'Amber','kind':'character','owner_id':'player','character_id':CID,'color':'#d9ba7e','size':4,'x':23,'y':41})
 snapshot={'name':'Mondstadt','items':deepcopy(items),'characters':deepcopy(characters),'tokens':deepcopy(tokens),'settings':[{'item_id':MID,'room_id':RID,'grid_enabled':True,'grid_type':'hex','grid_columns':20,'units_per_cell':1.5,'unit':'m','grid_color':'#ffffff'}],'markers':[],'rolls':[],'combat':None}
-base_api=api;jobs={};uploads={};calls=[];drop_upload=True;drop_finish=True
+snapshot['fog']=[{'item_id':MID,'enabled':True,'regions':[]}]
+base_api=api;jobs={};uploads={};calls=[];drop_upload=True;drop_finish=True;missing_fog=False
 settings={}
 def backup_api(route):
  global drop_upload,drop_finish
  req=route.request;path=urlparse(req.url).path;user=req.headers.get('authorization','').replace('Bearer token-','')
  body=req.post_data_json or {} if req.method=='POST' and req.headers.get('content-type','').startswith('application/json') else {}
+ if path=='/rest/v1/campaign_map_fog':return reply(route,{'message':'Missing','code':'PGRST205'},404) if missing_fog else reply(route,[])
  if path=='/rest/v1/rpc/export_campaign_backup':calls.append('export');return reply(route,snapshot)
  if path=='/rest/v1/rpc/prepare_campaign_restore':
   calls.append('prepare')
@@ -59,7 +61,7 @@ with sync_playwright() as p:
  file=gm.locator('#room-backup input[type=file]')
  corrupt=deepcopy(backup);corrupt['assets'][0]['sha256']='bad';file.set_input_files({'name':'bad.json','mimeType':'application/json','buffer':json.dumps(corrupt).encode()});gm.wait_for_function("document.querySelector('#room-backup [role=status]').textContent.includes('alterada')");assert 'prepare' not in calls
  file.set_input_files({'name':'campanha.json','mimeType':'application/json','buffer':raw});gm.locator('[data-backup-preview]').wait_for(state='visible');assert gm.locator('[data-backup-summary]').inner_text().endswith('1 imagens (0.0 MB).');assert len(jobs)==0
- gm.locator('[name=restoredName]').fill('Campanha restaurada');gm.locator('[data-backup-restore]').click();gm.wait_for_function("document.querySelector('#room-backup [role=status]').textContent.includes('Envio de imagem interrompido')");assert len(jobs)==1;assert len(characters)==1
+ gm.locator('[name=restoredName]').fill('Campanha restaurada');missing_fog=True;gm.locator('[data-backup-restore]').click();gm.wait_for_function("document.querySelector('#room-backup [role=status]').textContent.includes('SQL 011')");assert len(jobs)==0;missing_fog=False;gm.locator('[data-backup-restore]').click();gm.wait_for_function("document.querySelector('#room-backup [role=status]').textContent.includes('Envio de imagem interrompido')");assert len(jobs)==1;assert len(characters)==1
  gm.locator('[data-backup-restore]').click();gm.wait_for_function("document.querySelector('#room-backup [role=status]').textContent.includes('Verifique a internet')");assert len(jobs)==1;assert len(characters)==2
  gm.locator('[data-backup-restore]').click();gm.wait_for_function("document.querySelector('#room-select').value==='22222222-2222-2222-2222-222222222222'")
  assert len(jobs)==1;assert len(characters)==2;assert len(uploads)==1;assert list(uploads.values())[0]==png
